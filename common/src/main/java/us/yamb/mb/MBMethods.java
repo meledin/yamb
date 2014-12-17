@@ -1,6 +1,6 @@
 package us.yamb.mb;
 
-import us.yamb.amb.callbacks.AsyncResult;
+import us.yamb.mb.callbacks.AsyncResult;
 
 public interface MBMethods<MBStatus, ChannelBuilder, Send>
 {

@@ -7,9 +7,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import us.yamb.amb.Channel;
-import us.yamb.amb.callbacks.AsyncResult;
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.amb.spi.ChannelBase;
+import us.yamb.mb.callbacks.AsyncResult;
 
 import com.ericsson.research.trap.utils.StringUtil;
 import com.rabbitmq.client.AMQP.BasicProperties;

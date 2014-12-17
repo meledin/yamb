@@ -4,10 +4,10 @@ import com.ericsson.research.trap.utils.StringUtil;
 
 import us.yamb.amb.Channel;
 import us.yamb.amb.callbacks.AMBCallbackInterface;
-import us.yamb.amb.callbacks.AsyncResult;
 import us.yamb.amb.callbacks.OnChannel;
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.amb.spi.ObservableBase;
+import us.yamb.mb.callbacks.AsyncResult;
 
 public class ChannelImpl extends ObservableBase<AMBCallbackInterface, Channel> implements Channel
 {

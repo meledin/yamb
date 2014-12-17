@@ -1,7 +1,7 @@
 package us.yamb.rmb;
 
-import us.yamb.amb.callbacks.AMBCallbackInterface;
 import us.yamb.mb.Observable;
+import us.yamb.rmb.callbacks.RMBCallbackInterface;
 
 /**
  * A pipe allows for sending and receiving sequential messages in a direct,
@@ -14,7 +14,7 @@ import us.yamb.mb.Observable;
  * if it is expected that many messages will be sent with the same parameters, a
  * Pipe should be built.
  */
-public interface Pipe extends Observable<AMBCallbackInterface, Pipe>
+public interface Pipe extends Observable<RMBCallbackInterface, Pipe>
 {
 	public Pipe send(byte[] data);
 

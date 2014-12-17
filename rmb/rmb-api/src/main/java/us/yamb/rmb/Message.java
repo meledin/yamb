@@ -5,9 +5,13 @@ package us.yamb.rmb;
  */
 public interface Message
 {
-    public String from();
+    public Path from();
     
-    public String to();
+    public Path to();
+    
+    public String method();
+    
+    public String header(String name);
     
     public byte[] bytes();
     

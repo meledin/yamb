@@ -1,9 +1,9 @@
 package us.yamb.rmb.builders;
 
-import us.yamb.amb.builders.MessageBuilder;
+import us.yamb.mb.builders.MBMessageBuilder;
 import us.yamb.rmb.Path;
 
-public interface RestMessageBuilder<T> extends MessageBuilder<T>
+public interface RestMessageBuilder<T> extends MBMessageBuilder<T>
 {
 	T method(String method);
 	

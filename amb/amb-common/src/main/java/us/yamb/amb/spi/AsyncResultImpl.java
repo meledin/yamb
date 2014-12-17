@@ -1,6 +1,6 @@
 package us.yamb.amb.spi;
 
-import us.yamb.amb.callbacks.AsyncResult;
+import us.yamb.mb.callbacks.AsyncResult;
 
 public class AsyncResultImpl<T> implements AsyncResult<T>
 {

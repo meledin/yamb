@@ -1,4 +1,4 @@
-package us.yamb.amb.callbacks;
+package us.yamb.mb.callbacks;
 
 public interface AsyncResult<T>
 {

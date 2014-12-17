@@ -8,9 +8,9 @@ import us.yamb.amb.AMB;
 import us.yamb.amb.AMBStatus;
 import us.yamb.amb.Send;
 import us.yamb.amb.builders.ChannelBuilder;
-import us.yamb.amb.callbacks.AsyncResult;
 import us.yamb.amb.spi.AMBase;
 import us.yamb.amb.spi.AsyncResultImpl;
+import us.yamb.mb.callbacks.AsyncResult;
 
 import com.ericsson.research.trap.utils.UUID;
 import com.rabbitmq.client.AMQP.BasicProperties;

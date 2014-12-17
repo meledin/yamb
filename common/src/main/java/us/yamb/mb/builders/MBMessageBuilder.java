@@ -1,6 +1,6 @@
-package us.yamb.amb.builders;
+package us.yamb.mb.builders;
 
-public interface MessageBuilder<T>
+public interface MBMessageBuilder<T>
 {
 
     public T to(String id);

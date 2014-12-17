@@ -6,9 +6,9 @@ import us.yamb.amb.AMB;
 import us.yamb.amb.AMBStatus;
 import us.yamb.amb.Send;
 import us.yamb.amb.builders.ChannelBuilder;
-import us.yamb.amb.callbacks.AsyncResult;
 import us.yamb.amb.spi.AMBase;
 import us.yamb.amb.spi.AsyncResultImpl;
+import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.tmb.Client;
 import us.yamb.tmb.Client.Handler;
 

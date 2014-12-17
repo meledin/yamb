@@ -1,6 +1,6 @@
 package us.yamb.rmb.builders;
 
-import us.yamb.amb.AMB;
+import us.yamb.rmb.RMB;
 
 /**
  * Constructor object for YAMB instances
@@ -33,7 +33,7 @@ public abstract class RMBBuilder
 
 	public abstract Object getConfig(String key);
 
-	public abstract AMB build();
+	public abstract RMB build();
 
 	public static RMBBuilder builder() throws InstantiationException, IllegalAccessException, ClassNotFoundException
 	{

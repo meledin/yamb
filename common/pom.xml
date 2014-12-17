@@ -2,15 +2,8 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>us.yamb</groupId>
-    <artifactId>amb-parent</artifactId>
+    <artifactId>yamb-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
-  <artifactId>amb-api</artifactId>
-  <dependencies>
-  	<dependency>
-  		<groupId>us.yamb</groupId>
-  		<artifactId>common</artifactId>
-  		<version>1.0-SNAPSHOT</version>
-  	</dependency>
-  </dependencies>
+  <artifactId>common</artifactId>
 </project>

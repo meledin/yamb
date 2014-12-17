@@ -10,6 +10,8 @@
   	<module>yamb-util</module>
   	<module>tmb</module>
   	<module>amb</module>
+  	<module>common</module>
+  	<module>rmb</module>
   </modules>
   <inceptionYear>2014</inceptionYear>
 </project>
