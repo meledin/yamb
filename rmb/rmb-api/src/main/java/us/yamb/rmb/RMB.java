@@ -56,7 +56,7 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 	public void add(Object restObject);
 
 	/**
-	 * Creates a new Request object, which expects
+	 * Creates a new Request object, which sends a message and expects a single reply.
 	 * 
 	 * @return
 	 */
@@ -64,7 +64,11 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 
 	/**
 	 * Create a {@link PipeBuilder} to make a {@link Pipe}. Pipes are
-	 * high-performance conduits to send identical messages repeatedly.
+	 * high-performance conduits to send identical messages repeatedly. When
+	 * sending messages over a pipe, the implementation may perform
+	 * optimisations knowing that there will be a series of messages going over
+	 * the same path. Inversely, for one-time (or sporadic) messages, making a
+	 * pipe may require more time than is necessary.
 	 * 
 	 * @return
 	 */

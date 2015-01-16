@@ -3,6 +3,7 @@ package us.yamb.amb.spi;
 import us.yamb.amb.AMB;
 import us.yamb.amb.AMBStatus;
 import us.yamb.amb.callbacks.AMBCallbackInterface;
+import us.yamb.amb.callbacks.OnConnect;
 import us.yamb.amb.callbacks.OnDisconnect;
 import us.yamb.amb.callbacks.OnMessage;
 
@@ -11,6 +12,7 @@ public abstract class AMBase extends ObservableBase<AMBCallbackInterface, AMB> i
 	protected AMBStatus	   status	= AMBStatus.DISCONNECTED;
 	protected OnMessage	   onmessage;
 	protected OnDisconnect	ondisconnect;
+	protected OnConnect onconnect;
 
 	public AMBStatus status()
 	{

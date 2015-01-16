@@ -7,7 +7,5 @@ public interface RestMessageBuilder<T> extends MBMessageBuilder<T>
 {
 	T method(String method);
 	
-	T from(Path from);
-	
 	T to(Path to);
 }

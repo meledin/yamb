@@ -15,7 +15,8 @@ public interface MBMethods<MBStatus, ChannelBuilder, Send>
 	public ChannelBuilder channel();
 
 	/**
-	 * Creates a new Send object, to send a message on the bus.
+	 * Creates a new Send object, to send a message on the bus. Send produces a
+	 * one-shot result, that will is to be rebuilt every time.
 	 * 
 	 * @return
 	 */

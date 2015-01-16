@@ -66,6 +66,7 @@ public class AMBRabbit extends AMBase implements AMB
 			connection = factory.newConnection();
 			channel = connection.createChannel();
 			status = AMBStatus.CONNECTED;
+			onconnect.onconnect(this);
 			res.callback(null);
 
 			channel.queueDeclare(id, false, false, false, null);

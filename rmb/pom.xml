@@ -10,5 +10,6 @@
   <modules>
   	<module>rmb-api</module>
   	<module>rmb-common</module>
+  	<module>rmb-amb</module>
   </modules>
 </project>

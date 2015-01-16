@@ -60,6 +60,7 @@ public class AMBTMB extends AMBase implements AMB, Handler
 					if (result)
 					{
 						status = AMBStatus.CONNECTED;
+						onconnect.onconnect(AMBTMB.this);
 						res.callback(null);
 					}
 					else
