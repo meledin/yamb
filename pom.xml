@@ -4,8 +4,22 @@
   <artifactId>yamb-parent</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.2</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  
   <modules>
-  	
   	<module>yamb-core</module>
   	<module>yamb-util</module>
   	<module>tmb</module>
