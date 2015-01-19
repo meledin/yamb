@@ -4,6 +4,14 @@ import us.yamb.mb.MBMethods;
 import us.yamb.mb.Observable;
 import us.yamb.rmb.builders.ChannelBuilder;
 import us.yamb.rmb.builders.PipeBuilder;
+import us.yamb.rmb.callbacks.OnDelete;
+import us.yamb.rmb.callbacks.OnDisconnect;
+import us.yamb.rmb.callbacks.OnGet;
+import us.yamb.rmb.callbacks.OnHead;
+import us.yamb.rmb.callbacks.OnMessage;
+import us.yamb.rmb.callbacks.OnPipe;
+import us.yamb.rmb.callbacks.OnPost;
+import us.yamb.rmb.callbacks.OnPut;
 import us.yamb.rmb.callbacks.RMBCallbackInterface;
 
 /**
@@ -73,5 +81,14 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 	 * @return
 	 */
 	public PipeBuilder pipe();
+
+    public RMB ondelete(OnDelete cb);
+    public RMB ondisconnect(OnDisconnect cb);
+    public RMB onget(OnGet cb);
+    public RMB onhead(OnHead cb);
+    public RMB onmessage(OnMessage cb);
+    public RMB onpipe(OnPipe cb);
+    public RMB onpost(OnPost cb);
+    public RMB onput(OnPut cb);
 
 }

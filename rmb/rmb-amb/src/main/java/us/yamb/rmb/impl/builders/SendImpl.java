@@ -1,60 +1,32 @@
 package us.yamb.rmb.impl.builders;
 
-import us.yamb.rmb.Path;
+import java.io.IOException;
+
+import us.yamb.rmb.Location;
 import us.yamb.rmb.Send;
 import us.yamb.rmb.impl.RMBImpl;
+import us.yamb.rmb.impl.RMBMessage;
 
-public class SendImpl implements Send
+public class SendImpl extends RMBMessage<Send> implements Send
 {
 
 	private RMBImpl parent;
-	private String method;
-
+    private us.yamb.amb.Send msg;
+	
 	public SendImpl(RMBImpl parent, us.yamb.amb.Send aSend)
     {
 		this.parent = parent;
+        this.msg = aSend;
     }
 
-	public Send method(String method)
-	{
-		this.method = method;
-		return this;
-	}
-
-	public Send to(Path to)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Send to(String id)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Send data(byte[] data)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Send data(String data)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Send data(Object data)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Send confirmed(boolean confirmed)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
+    @Override
+    public void send() throws IOException
+    {
+        from(parent.id());
+        msg.confirmed(confirmed());
+        msg.data(serialize());
+        msg.to(to().getPart(Location.ROOT_ID));
+        msg.send();
+    }
+    
 }

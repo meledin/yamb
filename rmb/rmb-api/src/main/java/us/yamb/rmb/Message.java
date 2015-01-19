@@ -5,9 +5,9 @@ package us.yamb.rmb;
  */
 public interface Message
 {
-    public Path from();
+    public Location from();
     
-    public Path to();
+    public Location to();
     
     public String method();
     
@@ -21,6 +21,6 @@ public interface Message
     
     public boolean confirmed();
     
-    public String id();
+    public long id();
     
 }

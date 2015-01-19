@@ -165,15 +165,34 @@ class FieldTransformer extends ObjectTransformer
                 // traverse object
                 TypeContext typeContext = context.writeOpenObject();
                 Collection<String> fNames = ((JSONSerializable) object).getFieldNames();
-                this.xform("class", object.getClass(), context, typeContext);
+                
+                if (fNames.contains("class"))
+                    this.xform("class", object.getClass(), context, typeContext);
                 for (String name : fNames)
                 {
-                    Field f = object.getClass().getDeclaredField(name);
-                    path.enqueue(name);
-                    f.setAccessible(true);
-                    Object value = f.get(object);
-                    this.xform(name, value, context, typeContext);
-                    path.pop();
+                    Field f = null;
+                    Class<?> c = object.getClass();
+                    do
+                    {
+                        try
+                        {
+                            f = c.getDeclaredField(name);
+                            break;
+                        }
+                        catch (NoSuchFieldException e)
+                        {
+                            c = c.getSuperclass();
+                        }
+                    } while (c != null);
+                    
+                    if (f != null)
+                    {
+                        path.enqueue(name);
+                        f.setAccessible(true);
+                        Object value = f.get(object);
+                        this.xform(name, value, context, typeContext);
+                        path.pop();
+                    }
                 }
                 context.writeCloseObject();
                 context.setVisits((ChainedSet) context.getVisits().getParent());

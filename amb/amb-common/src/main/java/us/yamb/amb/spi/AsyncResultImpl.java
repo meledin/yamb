@@ -7,7 +7,7 @@ public class AsyncResultImpl<T> implements AsyncResult<T>
 
 	private AsyncResultCallback<T>	callback;
 	private T	                   value	= null;
-	private boolean	               called	= false;
+	public boolean	               called	= false;
 
 	public AsyncResultImpl<T> callback(T value)
 	{

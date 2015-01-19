@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-public class Path
+public class Location
 {
+    
+    public static final int ROOT_ID = 1;
+    
 	/**
 	 * The path query, if any.
 	 */
@@ -33,7 +36,7 @@ public class Path
 	public final String[]	parts;
 	Map<String, String>	  queryParams	= null;
 	
-	private Path(String path, String query)
+	private Location(String path, String query)
 	{
 
 		this.path = processResource(path);
@@ -45,7 +48,7 @@ public class Path
 			parts = new String[] { "" };
 	}
 
-	public Path(String src)
+	public Location(String src)
 	{
 		int idx = src.indexOf("?");
 		
@@ -135,10 +138,14 @@ public class Path
         return resource;
     }
     
-    public Path withPath(String src)
+    public Location withPath(String src)
     {
     	String newPath = path + (path.endsWith("/") ? "" : "/") + src;
-    	return new Path(newPath, query);
+    	return new Location(newPath, query);
+    }
+    
+    public String toString() {
+        return path + (query != null ? "?"+query : "");
     }
 
 }

@@ -2,7 +2,7 @@ package us.yamb.amb;
 
 import org.junit.Test;
 
-import us.yamb.rmb.Path;
+import us.yamb.rmb.Location;
 
 public class PathTest
 {
@@ -10,7 +10,7 @@ public class PathTest
 	@Test
 	public void testEmpty() throws Exception
 	{
-		Path path = new Path("");
+		Location path = new Location("");
 	}
 	
 }
