@@ -19,14 +19,19 @@ public class AMBTMB extends AMBase implements AMB, Handler
 
 	String	                                   host;
 	int	                                       port;
-	Client	                                   client	= new Client();
+	Client	                                   client;
 
 	ConcurrentSkipListMap<String, ChannelImpl>	subs	= new ConcurrentSkipListMap<String, ChannelImpl>();
 
-	public AMBTMB(String host, int port)
+	public AMBTMB(String host, int port, String name)
 	{
 		this.host = host;
 		this.port = port;
+		
+		if (name != null)
+		client = new Client(name);
+		else
+		    client = new Client();
 		client.setHandler(this);
 	}
 

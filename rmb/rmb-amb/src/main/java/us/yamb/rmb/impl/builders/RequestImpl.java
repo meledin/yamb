@@ -1,7 +1,10 @@
 package us.yamb.rmb.impl.builders;
 
+import java.io.IOException;
+
 import com.ericsson.research.trap.utils.ThreadPool;
 
+import us.yamb.amb.Send;
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.callbacks.AsyncResult.AsyncResultCallback;
@@ -10,22 +13,23 @@ import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
 import us.yamb.rmb.Request.Response;
+import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBMessage;
 
-public class RequestImpl extends RMBMessage<Request> implements Request
+public class RequestImpl extends SendImpl<Request> implements Request
 {
     
     private RMB  rmb;
     private long timeout = 30000;
     
-    public RequestImpl(RMB rmb)
+    public RequestImpl(RMBImpl rmb, Send aSend)
     {
+        super(rmb, aSend);
         this.rmb = rmb;
-        
     }
     
     @Override
-    public AsyncResult<Response> execute()
+    public AsyncResult<Response> execute() throws IOException
     {
         RMB resp = rmb.create();
         AsyncResultImpl<Response> rv = new AsyncResultImpl<Request.Response>();
@@ -38,11 +42,12 @@ public class RequestImpl extends RMBMessage<Request> implements Request
             rv.callback(new ResponseImpl(new InterruptedException("Timeout exceeded without response")));
             
         }, timeout);
+        send(resp);
         return rv;
     }
     
     @Override
-    public void execute(AsyncResultCallback<Response> callback)
+    public void execute(AsyncResultCallback<Response> callback) throws IOException
     {
         execute().setCallback(callback);
     }

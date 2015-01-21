@@ -10,6 +10,7 @@ public class AMBBuilderImpl extends AMBBuilder
 
 	String host;
 	int port;
+    private String id = null;
 
 	@Override
 	public AMBBuilder seed(String seedPeerInfo)
@@ -23,8 +24,8 @@ public class AMBBuilderImpl extends AMBBuilder
 	@Override
 	public AMBBuilder id(String id)
 	{
-		// TODO Auto-generated method stub
-		return null;
+		this.id = id;
+        return this;
 	}
 
 	@Override
@@ -48,7 +49,7 @@ public class AMBBuilderImpl extends AMBBuilder
 	@Override
 	public AMB build()
 	{
-		return new AMBTMB(host, port);
+		return new AMBTMB(host, port, id);
 	}
 
 }

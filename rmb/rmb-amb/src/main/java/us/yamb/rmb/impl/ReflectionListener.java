@@ -130,7 +130,7 @@ public class ReflectionListener
         this.dispatcherPath = "";
         this.listenerPath = null;
         
-        for (int i = 1; i < parts.length; i++)
+        for (int i = 0; i < parts.length; i++)
         {
             this.dispatcherPath += "/";
             if (parts[i].startsWith("{"))
@@ -157,9 +157,9 @@ public class ReflectionListener
         // Create the listener regexp
         if (this.listenerPath != null)
         {
-            this.regex = "";
+            this.regex = "/[^/]*";
             parts = this.listenerPath.split("/");
-            for (int i = 1; i < parts.length; i++)
+            for (int i = 0; i < parts.length; i++)
             {
                 String part = parts[i];
                 

@@ -3,11 +3,11 @@ package us.yamb.rmb.impl.builders;
 import java.io.IOException;
 
 import us.yamb.rmb.Location;
-import us.yamb.rmb.Send;
+import us.yamb.rmb.RMB;
 import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBMessage;
 
-public class SendImpl extends RMBMessage<Send> implements Send
+public class SendImpl<T> extends RMBMessage<T>
 {
 
 	private RMBImpl parent;
@@ -19,10 +19,14 @@ public class SendImpl extends RMBMessage<Send> implements Send
         this.msg = aSend;
     }
 
-    @Override
     public void send() throws IOException
     {
-        from(parent.id());
+        send(parent);
+    }
+
+    public void send(RMB resp) throws IOException
+    {
+        from(resp.id());
         msg.confirmed(confirmed());
         msg.data(serialize());
         msg.to(to().getPart(Location.ROOT_ID));

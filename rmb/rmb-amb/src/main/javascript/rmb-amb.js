@@ -87,8 +87,116 @@
 		return found;
 	};
 	
+	var toJSONByteArray = function(s) {
+		var bytes = [];
+
+		for (var i = 0; i < s.length; i++) {
+			var c = s.charCodeAt(i);
+			bytes.push(c);
+		}
+
+		return bytes;
+	};
+	
+	var fromJSONByteArray = function(arr, offset, length)
+	{
+		var str = "";
+		if (typeof(offset) == "undefined")
+		{
+			offset = 0; length = arr.length;
+		}
+		
+		for (var i=offset; i<length; i++)
+			str += String.fromCharCode(arr[i]);
+		
+		return str;
+	};
+	
+	Trap._compat = {};
+
+	Trap._compat.capitalise = function(str)
+	{
+		return str.substr(0,1).toUpperCase() + str.substr(1);
+	};
+
+	Trap._compat.__defineSetter = function(object, setterName, cb)
+	{
+		
+		var newName = "set" + Trap._compat.capitalise(setterName);
+		
+		if (!cb)
+		{
+			var privateName = "_" + setterName;
+			cb = function(val) {
+				this[privateName] = val;
+				return this;
+			};
+		}
+		
+		if (object.__defineSetter__)
+		{
+			try
+			{
+				object.__defineSetter__(setterName, cb);
+			} catch(e){}
+		}
+
+		// Also create the getter function as a property of the object
+		object[newName] = cb;
+	};
+
+	Trap._compat.__defineGetter = function(object, getterName, cb)
+	{
+		
+		var newName = "get" + Trap._compat.capitalise(getterName);
+		
+		if (!cb)
+		{
+			var privateName = "_" + getterName;
+			
+			cb = function() {
+				return this[privateName];
+			};
+		}
+		
+		if (object.__defineGetter__)
+		{
+			try
+			{
+				object.__defineGetter__(getterName, cb);
+			} catch(e){}
+		}
+		
+		// Also create the getter function as a property of the object
+		object[newName] = cb;
+	};
+
+	Trap._compat.__defineGetterSetter = function(object, publicName, privateName, getter, setter)
+	{
+		if (!privateName)
+			privateName = "_" + publicName;
+		
+		if (!getter)
+		{
+			getter = function() {
+				return this[privateName];
+			};
+		}
+		
+		if (!setter)
+		{
+			setter = function(val) {
+				this[privateName] = val;
+				return this;
+			};
+		}
+
+		Trap._compat.__defineSetter(object, publicName, setter);
+		Trap._compat.__defineGetter(object, publicName, getter);
+	};
+	
 	var Location = function(src) {
-		var qpos = src.search("?");
+		var qpos = src.search("\\?");
 		
 		this.path = "";
 		this.query = "";
@@ -108,43 +216,57 @@
 		
 	}
 	
+	var Message = function(){};
+	Message.prototype.string = function() {
+		return fromJSONByteArray(this.data);
+	};
+	
 	var dispatchFun = function(msg) {
 		var to = msg.location.parts[msg.idx];
 		if (this._id == to)
 		{
-			
-			if (!!msg.method)
+			msg.idx++;
+			if (msg.location.parts.length == msg.idx)
 			{
-				msg.type = msg.method;
-				if (this._dispatchEvent(msg))
-					return true;
+				if (!!msg.method)
+				{
+					msg.type = msg.method;
+					if (this._dispatchEvent(msg))
+						return true;
+				}
+				
+				msg.type = "message";
+				return this._dispatchEvent(msg);
 			}
 			
-			msg.type = "message";
-			return this._dispatchEvent(msg);
+			var child = this.children[msg.location.parts[msg.idx]];
+			
+			if (!!child)
+				return child._dispatchEvent(msg);
 		}
 		
-		msg.idx++;
-		var child = this.children(msg.location.parts[msg.idx]);
 		
-		if (!!child)
-			return child._dispatchEvent(msg);
 		return false;
 	};
 	
 	var RMB = function(amb, options) {
-		var rmb = this;
-		Trap.EventObject.prototype.constructor(this);
-		this._amb = amb;
-		amb.onopen = function() { rmb._dispatchEvent({type: open})};
-		amb.ondirect = function(msg) { 
-			var evt = JSON.parse(msg.string);
-			evt.type = "dispatch";
-			evt.location = new Location(evt.to);
-			evt.idx = 1;
-			rmb._dispatchEvent(evt);
-		};
-		this.ondispatch = dispatchFun;
+		
+		if (!!amb) {
+			var rmb = this;
+			Trap.EventObject.prototype.constructor(this);
+			this._amb = amb;
+			amb.onopen = function() { rmb._id = amb.id(); rmb._dispatchEvent({type: "open"}); };
+			amb.onmessage = function(msg) { 
+				var evt = JSON.parse(msg.string);
+				evt.type = "dispatch";
+				evt.location = new Location(evt.to);
+				evt.idx = 1;
+				Trap._compat.__defineGetter(evt, "string", Message.prototype.string);
+				rmb._dispatchEvent(evt);
+			};
+			this.ondispatch = dispatchFun;
+			this.children = {};
+		}
 	};
 	
 	RMB.prototype = new Trap.EventObject;
@@ -153,32 +275,38 @@
 	RMB.prototype.create = function(id) {
 		if (!id)
 			id=Trap._uid();
-		children[id] = new Child(this, id);
-	}
+		
+		if (!!this.children[id]) 
+			return this.children[id];
+		
+		return this.children[id] = new Child(this, id);
+	};
 	
 	RMB.prototype.request = function(src) {
 		if (!src) src = this;
 		var msg = {};
 		var rmb = this;
 		return {
-			to: function(str) { msg.to = str.location ? str.location : str; },
+			to: function(str) { msg.to = str.location ? str.location : str;  return this;},
 			data: function(data) {
 				if (typeof(data) == "string")
-					msg.data = data;
+					msg.data = utf8Encode(data);
 				if (typeof(data) == "object")
 					msg.data = JSON.serialize(data);
+				 return this;
 			},
-			confirmed: function(bool) { msg.confirmed = !!bool; },
-			method: function(str) { msg.method = str; },
-			status: function(num) { msg.status = num; },
+			confirmed: function(bool) { msg.confirmed = !!bool; return this; },
+			method: function(str) { msg.method = str;  return this;},
+			status: function(num) { msg.status = num;  return this;},
 			execute: function(cb) {
 				var res = src.create();
 				res.onmessage = function(msg) {
 					cb(msg);
 				};
+				msg.from = res.id();
 				var payload = JSON.stringify(msg);
 				var loc = new Location(msg.to);
-				rmb._amb.message().to("/" + loc.parts[1]).from(rmb.id()).data(payload).send();
+				rmb._amb.message().to(loc.parts[1]).from(rmb.id()).data(payload).send();
 				
 			}
 		};
@@ -189,21 +317,22 @@
 		var msg = {};
 		var rmb = this;
 		return {
-			to: function(str) { msg.to = str.location ? str.location : str; },
+			to: function(str) { msg.to = str.location ? str.location : str; return this;},
 			data: function(data) {
 				if (typeof(data) == "string")
-					msg.data = data;
+					msg.data = utf8Encode(data);
 				if (typeof(data) == "object")
 					msg.data = JSON.serialize(data);
+				return this;
 			},
-			confirmed: function(bool) { msg.confirmed = !!bool; },
-			method: function(str) { msg.method = str; },
-			status: function(num) { msg.status = num; },
+			confirmed: function(bool) { msg.confirmed = !!bool; return this;},
+			method: function(str) { msg.method = str; return this;},
+			status: function(num) { msg.status = num; return this;},
 			send: function() {
 				msg.from = src.id();
 				var payload = JSON.stringify(msg);
 				var loc = new Location(msg.to);
-				rmb._amb.message().to("/" + loc.parts[1]).from(rmb.id()).data(payload).send();
+				rmb._amb.message().to(loc.parts[1]).from(rmb.id()).data(payload).send();
 				
 			}
 		};
@@ -241,6 +370,18 @@
 	Child.prototype = new RMB;
 	Child.prototype.constructor = Child;
 	
+	Child.prototype.id = function() {
+		return this.parent.id() + "/" + this._id;
+	};
+	
+	Child.prototype.request = function(src) {
+		return this.parent.request(src || this);
+	}
+	
+	Child.prototype.message = function(src) {
+		return this.parent.message(src || this);
+	}
+	
 	
 	var builder = function() {
 		var seedArg, idArg;
@@ -252,6 +393,10 @@
 				return new RMB(amb, {seed: seedArg, id: idArg});
 			}
 		};
+	};
+	
+	target.RMB = {
+			builder: builder
 	};
 	
 })(self);

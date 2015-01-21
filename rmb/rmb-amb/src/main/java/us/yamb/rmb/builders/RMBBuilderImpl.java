@@ -25,7 +25,7 @@ public class RMBBuilderImpl extends RMBBuilder
     public RMBBuilder id(String id)
     {
 		builder.id(id);
-	    return null;
+	    return this;
     }
 
 	@Override

@@ -82,6 +82,18 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 	 */
 	public PipeBuilder pipe();
 
+    public Request get(String to);
+    public Request get(Location to);
+
+    public Request put(String to);
+    public Request put(Location to);
+
+    public Request post(String to);
+    public Request post(Location to);
+
+    public Request delete(String to);
+    public Request delete(Location to);
+	
     public RMB ondelete(OnDelete cb);
     public RMB ondisconnect(OnDisconnect cb);
     public RMB onget(OnGet cb);

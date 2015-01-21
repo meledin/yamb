@@ -3,6 +3,7 @@ package us.yamb.rmb.impl;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.RMBStatus;
+import us.yamb.rmb.Request;
 import us.yamb.rmb.Send;
 
 public class RMBChild extends RMBImpl
@@ -57,6 +58,12 @@ public class RMBChild extends RMBImpl
         if (id.startsWith("/"))
             return parent.create(id);
         return super.create(id);
+    }
+
+    @Override
+    public Request request(RMBImpl res)
+    {
+        return parent.request(res);
     }
     
 }

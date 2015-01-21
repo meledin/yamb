@@ -2,5 +2,11 @@
 <head>
 <script src="amb-tmb.js"></script>
 <script src="rmb-amb.js"></script>
+<script>
+rmb = RMB.builder().seed("ws://127.0.0.1:4442").build();
+rmb.onopen = function() {
+	console.log("open");
+};
+</script>
 </head>
 </html>

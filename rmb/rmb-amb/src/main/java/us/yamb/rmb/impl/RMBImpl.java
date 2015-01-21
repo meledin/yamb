@@ -1,11 +1,14 @@
 package us.yamb.rmb.impl;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.ericsson.research.trap.utils.UID;
 
+import us.yamb.rmb.Location;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
 import us.yamb.rmb.Send;
@@ -55,6 +58,13 @@ public abstract class RMBImpl implements RMB
     
     public abstract Send message(RMBImpl res);
     
+    public abstract Request request(RMBImpl res);
+    
+    public Request request()
+    {
+        return request(this);
+    }
+    
     public abstract String seedInfo();
     
     public Send message()
@@ -87,6 +97,18 @@ public abstract class RMBImpl implements RMB
     
     public synchronized RMB create(String id)
     {
+        
+        if (id.startsWith("/"))
+            id = id.substring(1);
+        
+        String[] parts = id.split("/");
+        
+        if (parts.length >= 2)
+        {
+            String subparts = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).collect(Collectors.joining("/"));
+            return create(parts[0]).create(subparts);
+        }
+        
         if (children.get(id) != null)
             return children.get(id);
         
@@ -101,11 +123,6 @@ public abstract class RMBImpl implements RMB
     {
         RestConverter.convert(this, restObject);
         this.objects.add(restObject);
-    }
-    
-    public Request request()
-    {
-        return new RequestImpl(this);
     }
     
     public PipeBuilder pipe()
@@ -178,7 +195,7 @@ public abstract class RMBImpl implements RMB
         
         idx++;
         
-        if (msg.to().parts.length == idx)
+        if (msg.to().parts.length == idx || pathMatcher.test(msg.to))
         {
             // This message is to me!
             switch (msg.method())
@@ -247,6 +264,46 @@ public abstract class RMBImpl implements RMB
         }
         
         return false;
+    }
+    
+    public Request get(String to)
+    {
+        return request().to(to).method("GET");
+    }
+    
+    public Request get(Location to)
+    {
+        return get(to.toString());
+    }
+    
+    public Request put(String to)
+    {
+        return request().to(to).method("PUT");
+    }
+    
+    public Request put(Location to)
+    {
+        return put(to.toString());
+    }
+    
+    public Request post(String to)
+    {
+        return request().to(to).method("POST");
+    }
+    
+    public Request post(Location to)
+    {
+        return post(to.toString());
+    }
+    
+    public Request delete(String to)
+    {
+        return request().to(to).method("DELETE");
+    }
+    
+    public Request delete(Location to)
+    {
+        return delete(to.toString());
     }
     
 }

@@ -101,6 +101,8 @@ public class Broker implements WSAcceptListener
 				{
 					c.name = m.to;
 				}
+				else
+				    clients.put(c.name, c);
 				Message resp = new Message();
 				resp.op = Message.Operation.HELLO;
 				resp.to = c.name;

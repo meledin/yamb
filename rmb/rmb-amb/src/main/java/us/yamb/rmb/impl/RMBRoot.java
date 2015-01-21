@@ -8,7 +8,10 @@ import us.yamb.amb.callbacks.OnConnect;
 import us.yamb.amb.callbacks.OnMessage;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.rmb.RMBStatus;
+import us.yamb.rmb.Request;
 import us.yamb.rmb.Send;
+import us.yamb.rmb.impl.builders.RequestImpl;
+import us.yamb.rmb.impl.builders.SendBuilder;
 import us.yamb.rmb.impl.builders.SendImpl;
 
 public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
@@ -63,7 +66,7 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
 	@Override
 	public Send message(RMBImpl res)
     {
-	    return new SendImpl(res, amb.message());
+	    return new SendBuilder(res, amb.message());
     }
 
 	@Override
@@ -83,5 +86,11 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     {
         // TODO Auto-generated method stub
         
+    }
+
+    @Override
+    public Request request(RMBImpl res)
+    {
+        return new RequestImpl(res, amb.message());
     }
 }
