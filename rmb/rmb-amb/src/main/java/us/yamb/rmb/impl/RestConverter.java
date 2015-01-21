@@ -163,7 +163,7 @@ public class RestConverter
             ReflectionListener listener = new ReflectionListener(rmb, instance, m, listenerPath);
             String dispatcherPath = listener.getDispatcherPath().substring(1);
             
-            RMB resource = rmb.create(dispatcherPath);
+            RMB resource = dispatcherPath.trim().length() > 0 ? rmb.create(dispatcherPath) : rmb;
             
             try
             {

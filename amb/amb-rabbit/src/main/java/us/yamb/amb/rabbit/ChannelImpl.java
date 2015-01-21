@@ -102,9 +102,9 @@ public class ChannelImpl extends ChannelBase
 		}
 		catch (IOException e)
 		{
-			res.callback(false);
+			res.completed(false);
 		}
-		res.callback(true);
+		res.completed(true);
 
 		return res;
 	}

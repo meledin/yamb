@@ -51,7 +51,7 @@ public class ChannelImpl extends ObservableBase<AMBCallbackInterface, Channel> i
 		parent.client.subscribe(name);
 		parent.subs.put(name, this);
 
-		res.callback(true);
+		res.completed(true);
 
 		return res;
 	}

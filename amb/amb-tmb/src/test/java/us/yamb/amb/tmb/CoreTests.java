@@ -46,7 +46,7 @@ public class CoreTests
 			public void onmessage(AMB amb, Message message)
 			{
 				System.out.println(message.string());
-				res.callback(message.string());
+				res.completed(message.string());
 			}
 		});
 		

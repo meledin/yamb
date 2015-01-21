@@ -1,21 +1,22 @@
 package us.yamb.amb.spi;
 
 import us.yamb.mb.callbacks.AsyncResult;
+import us.yamb.mb.callbacks.AsyncResult.AsyncResultCallback;
 
-public class AsyncResultImpl<T> implements AsyncResult<T>
+public class AsyncResultImpl<T> implements AsyncResult<T>, AsyncResultCallback<T>
 {
 
 	private AsyncResultCallback<T>	callback;
 	private T	                   value	= null;
 	public boolean	               called	= false;
 
-	public AsyncResultImpl<T> callback(T value)
+	public void completed(T value)
 	{
 		AsyncResultCallback<T> cb;
 		synchronized (this)
 		{
 			if (called)
-				return this; // Do nothing if we already were called
+				return; // Do nothing if we already were called
 
 			this.value = value;
 			called = true;
@@ -23,13 +24,13 @@ public class AsyncResultImpl<T> implements AsyncResult<T>
 			if (this.callback == null)
 			{
 				this.notifyAll();
-				return this;
+				return;
 			}
 
 			cb = this.callback;
 		}
 		cb.completed(value);
-		return this;
+		return;
 	}
 
 	public T get() throws InterruptedException

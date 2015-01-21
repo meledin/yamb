@@ -17,6 +17,7 @@ public class BasicResource
     }
     
     @GET
+    @Path("")
     public String hello()
     {
         return "Hello!";

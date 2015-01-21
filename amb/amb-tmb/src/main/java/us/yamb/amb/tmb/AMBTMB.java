@@ -66,12 +66,12 @@ public class AMBTMB extends AMBase implements AMB, Handler
 					{
 						status = AMBStatus.CONNECTED;
 						onconnect.onconnect(AMBTMB.this);
-						res.callback(null);
+						res.completed(null);
 					}
 					else
 					{
 						status = AMBStatus.DISCONNECTED;
-						res.callback(new Exception("Could not connect..."));
+						res.completed(new Exception("Could not connect..."));
 					}
 				}
 			});
@@ -79,7 +79,7 @@ public class AMBTMB extends AMBase implements AMB, Handler
 		catch (Exception e)
 		{
 			status = AMBStatus.DISCONNECTED;
-			res.callback(e);
+			res.completed(e);
 		}
 
 		return res;

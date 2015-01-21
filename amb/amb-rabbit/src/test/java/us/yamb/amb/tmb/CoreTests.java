@@ -43,7 +43,7 @@ public class CoreTests
 			public void onmessage(AMB amb, Message message)
 			{
 				System.out.println(message.string());
-				res.callback(message.string());
+				res.completed(message.string());
 			}
 		});
 		
@@ -71,7 +71,7 @@ public class CoreTests
 		{
 			public void onchannel(AMB amb, Channel channel, Message message)
 			{
-				res.callback(message.string());
+				res.completed(message.string());
 			}
 		});
 		

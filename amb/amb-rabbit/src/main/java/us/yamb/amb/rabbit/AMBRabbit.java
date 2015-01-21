@@ -67,7 +67,7 @@ public class AMBRabbit extends AMBase implements AMB
 			channel = connection.createChannel();
 			status = AMBStatus.CONNECTED;
 			onconnect.onconnect(this);
-			res.callback(null);
+			res.completed(null);
 
 			channel.queueDeclare(id, false, false, false, null);
 			channel.basicConsume(id, new DefaultConsumer(channel)
@@ -99,7 +99,7 @@ public class AMBRabbit extends AMBase implements AMB
 		catch (Exception e)
 		{
 			status = AMBStatus.DISCONNECTED;
-			res.callback(e);
+			res.completed(e);
 		}
 
 		return res;
