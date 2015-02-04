@@ -65,5 +65,11 @@ public class RMBChild extends RMBImpl
     {
         return parent.request(res);
     }
+
+    @Override
+    public us.yamb.amb.Send _ambSend()
+    {
+        return parent._ambSend();
+    }
     
 }

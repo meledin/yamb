@@ -220,6 +220,9 @@
 	Message.prototype.string = function() {
 		return fromJSONByteArray(this.data);
 	};
+	Message.prototype.object = function() {
+		return JSON.parse(this.string);
+	};
 	
 	var dispatchFun = function(msg) {
 		var to = msg.location.parts[msg.idx];
@@ -262,6 +265,7 @@
 				evt.location = new Location(evt.to);
 				evt.idx = 1;
 				Trap._compat.__defineGetter(evt, "string", Message.prototype.string);
+				Trap._compat.__defineGetter(evt, "object", Message.prototype.object);
 				rmb._dispatchEvent(evt);
 			};
 			this.ondispatch = dispatchFun;
@@ -282,6 +286,30 @@
 		return this.children[id] = new Child(this, id);
 	};
 	
+	RMB.prototype.get = function(to) {
+		var req = this.request().method("GET");
+		if (!!to) req.to(to);
+		return req;
+	};
+	
+	RMB.prototype.put = function(to) {
+		var req = this.request().method("PUT");
+		if (!!to) req.to(to);
+		return req;
+	};
+	
+	RMB.prototype.post = function(to) {
+		var req = this.request().method("POST");
+		if (!!to) req.to(to);
+		return req;
+	};
+	
+	RMB.prototype.delete = function(to) {
+		var req = this.request().method("DELETE");
+		if (!!to) req.to(to);
+		return req;
+	};
+	
 	RMB.prototype.request = function(src) {
 		if (!src) src = this;
 		var msg = {};
@@ -290,9 +318,9 @@
 			to: function(str) { msg.to = str.location ? str.location : str;  return this;},
 			data: function(data) {
 				if (typeof(data) == "string")
-					msg.data = utf8Encode(data);
+					msg.data = toJSONByteArray(data);
 				if (typeof(data) == "object")
-					msg.data = JSON.serialize(data);
+					msg.data = toJSONByteArray(JSON.stringify(data));
 				 return this;
 			},
 			confirmed: function(bool) { msg.confirmed = !!bool; return this; },
@@ -320,9 +348,9 @@
 			to: function(str) { msg.to = str.location ? str.location : str; return this;},
 			data: function(data) {
 				if (typeof(data) == "string")
-					msg.data = utf8Encode(data);
+					msg.data = toJSONByteArray(data);
 				if (typeof(data) == "object")
-					msg.data = JSON.serialize(data);
+					msg.data = toJSONByteArray(JSON.stringify(data));
 				return this;
 			},
 			confirmed: function(bool) { msg.confirmed = !!bool; return this;},

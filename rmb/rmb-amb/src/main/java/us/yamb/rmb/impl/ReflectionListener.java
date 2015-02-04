@@ -1,6 +1,10 @@
 package us.yamb.rmb.impl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -13,6 +17,8 @@ import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
 import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
+import us.yamb.rmb.Response;
+import us.yamb.rmb.Response.ResponseException;
 import us.yamb.rmb.annotations.PathParam;
 import us.yamb.rmb.annotations.Produces;
 
@@ -304,12 +310,40 @@ public class ReflectionListener
                 }
             }
             
-            Object rv = this.m.invoke(this.o, objs.toArray());
+            Object rv;
+            Response resp = null;
             
-            rmb.message().to(message.from()).data(rv).method("POST").status(200).send();
+            try
+            {
+                rv = this.m.invoke(this.o, objs.toArray());
+            }
+            catch (Exception e)
+            {
+                rv = e;
+            }
+            
+            if (rv instanceof ResponseException)
+                resp = ((ResponseException) rv).response();
+            
+            if (resp != null)
+            {
+                resp.send(rmb);
+            }
+            else if (rv instanceof Exception)
+            {
+                Exception e = (Exception) rv;
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                Response.create().status(500).to(message).data(sw.toString()).send(rmb);
+            }
+            else
+            {
+                Response.ok().to(message).data(rv).method("POST").send(rmb);
+            }
             
         }
-        catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IOException e)
+        catch (IllegalArgumentException | IOException e)
         {
             e.printStackTrace();
         }

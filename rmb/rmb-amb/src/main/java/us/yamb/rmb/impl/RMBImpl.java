@@ -305,5 +305,7 @@ public abstract class RMBImpl implements RMB
     {
         return delete(to.toString());
     }
+
+    public abstract us.yamb.amb.Send _ambSend();
     
 }

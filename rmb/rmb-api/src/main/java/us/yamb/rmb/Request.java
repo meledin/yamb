@@ -9,14 +9,14 @@ import us.yamb.rmb.builders.RestMessageBuilder;
 public interface Request extends RestMessageBuilder<Request>
 {
 
-	public interface Response extends Message
+	public interface Reply extends Message
 	{
 		public Exception error();
 	}
 
-	AsyncResult<Response> execute() throws IOException;
+	AsyncResult<Reply> execute() throws IOException;
 
-	void execute(AsyncResultCallback<Response> callback) throws IOException;
+	void execute(AsyncResultCallback<Reply> callback) throws IOException;
 
 	Request timeout(long msec);
 }

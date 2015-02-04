@@ -5,7 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import us.yamb.amb.spi.AsyncResultImpl;
-import us.yamb.rmb.Request.Response;
+import us.yamb.rmb.Request.Reply;
 import us.yamb.rmb.builders.RMBBuilder;
 import us.yamb.tmb.Broker;
 
@@ -42,7 +42,7 @@ public class BaseTest
 		RMB rmb = RMBBuilder.builder().seed(broker.getURI()).build();
 		rmb.connect().get();
 		System.out.println(rmb.id());
-		AsyncResultImpl<Response> res = new AsyncResultImpl<>();
+		AsyncResultImpl<Reply> res = new AsyncResultImpl<>();
 
 		rmb.add(new BasicResource(rmb));
 		rmb.get(rmb.id()).execute(res);

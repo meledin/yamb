@@ -93,4 +93,10 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     {
         return new RequestImpl(res, amb.message());
     }
+
+    @Override
+    public us.yamb.amb.Send _ambSend()
+    {
+        return amb.message();
+    }
 }

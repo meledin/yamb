@@ -13,7 +13,7 @@ import us.yamb.rmb.Location;
 import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
-import us.yamb.rmb.Request.Response;
+import us.yamb.rmb.Request.Reply;
 import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBMessage;
 
@@ -30,10 +30,10 @@ public class RequestImpl extends SendImpl<Request> implements Request
 	}
 
 	@Override
-	public AsyncResult<Response> execute() throws IOException
+	public AsyncResult<Reply> execute() throws IOException
 	{
 		RMB resp = rmb.create();
-		AsyncResultImpl<Response> rv = new AsyncResultImpl<Request.Response>();
+		AsyncResultImpl<Reply> rv = new AsyncResultImpl<Request.Reply>();
 		resp.onmessage(msg -> rv.completed(new ResponseImpl(msg)));
 		ThreadPool.executeAfter(() -> {
 			if (rv.called)
@@ -48,7 +48,7 @@ public class RequestImpl extends SendImpl<Request> implements Request
 	}
 
 	@Override
-	public void execute(AsyncResultCallback<Response> callback) throws IOException
+	public void execute(AsyncResultCallback<Reply> callback) throws IOException
 	{
 		execute().setCallback(callback);
 	}
@@ -62,7 +62,7 @@ public class RequestImpl extends SendImpl<Request> implements Request
 
 }
 
-class ResponseImpl implements Response
+class ResponseImpl implements Reply
 {
 	private Exception	err	= null;
 	private Message	  msg;
