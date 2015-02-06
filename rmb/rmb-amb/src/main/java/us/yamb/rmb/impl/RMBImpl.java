@@ -6,8 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.ericsson.research.trap.utils.UID;
-
 import us.yamb.rmb.Location;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
@@ -23,7 +21,8 @@ import us.yamb.rmb.callbacks.OnPipe;
 import us.yamb.rmb.callbacks.OnPost;
 import us.yamb.rmb.callbacks.OnPut;
 import us.yamb.rmb.callbacks.RMBCallbackInterface;
-import us.yamb.rmb.impl.builders.RequestImpl;
+
+import com.ericsson.research.trap.utils.UID;
 
 public abstract class RMBImpl implements RMB
 {

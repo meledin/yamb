@@ -11,6 +11,7 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.UUID;
 
 import flexjson.BeanAnalyzer;
 import flexjson.BeanProperty;
@@ -80,8 +81,10 @@ public class JSON
     {
         JSONSerializer s = new JSONSerializer();
         
+        //if (JSONSerializable.class.isAssignableFrom(o.getClass()))
         s = s.transform(new FieldTransformer(), JSONSerializable.class);
         s = s.transform(new ExcludeTransformer(), void.class);
+        s = s.transform(new UUIDTransformer(), UUID.class);
         
         // Let's be pretty for now...
         s.prettyPrint(true);
@@ -105,6 +108,7 @@ public class JSON
         //if (JSONSerializable.class.isAssignableFrom(o.getClass()))
         s = s.transform(new FieldTransformer(), JSONSerializable.class);
         s = s.transform(new ExcludeTransformer(), void.class);
+        s = s.transform(new UUIDTransformer(), UUID.class);
         
         s.deepSerialize(o, new OutputStreamWriter(stream));
     }
@@ -165,34 +169,15 @@ class FieldTransformer extends ObjectTransformer
                 // traverse object
                 TypeContext typeContext = context.writeOpenObject();
                 Collection<String> fNames = ((JSONSerializable) object).getFieldNames();
-                
-                if (fNames.contains("class"))
-                    this.xform("class", object.getClass(), context, typeContext);
+                this.xform("class", object.getClass(), context, typeContext);
                 for (String name : fNames)
                 {
-                    Field f = null;
-                    Class<?> c = object.getClass();
-                    do
-                    {
-                        try
-                        {
-                            f = c.getDeclaredField(name);
-                            break;
-                        }
-                        catch (NoSuchFieldException e)
-                        {
-                            c = c.getSuperclass();
-                        }
-                    } while (c != null);
-                    
-                    if (f != null)
-                    {
-                        path.enqueue(name);
-                        f.setAccessible(true);
-                        Object value = f.get(object);
-                        this.xform(name, value, context, typeContext);
-                        path.pop();
-                    }
+                    Field f = object.getClass().getDeclaredField(name);
+                    path.enqueue(name);
+                    f.setAccessible(true);
+                    Object value = f.get(object);
+                    this.xform(name, value, context, typeContext);
+                    path.pop();
                 }
                 context.writeCloseObject();
                 context.setVisits((ChainedSet) context.getVisits().getParent());
@@ -367,7 +352,7 @@ class ExcludeTransformer extends AbstractTransformer
     }
 }
 
-class WarpURITransformer extends AbstractTransformer
+class UUIDTransformer extends AbstractTransformer
 {
     
     public void transform(Object object)

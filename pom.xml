@@ -96,6 +96,7 @@
 		<module>yamb-core</module>
 		<module>yamb-util</module>
 		<module>tmb</module>
+		<module>tmb-trap</module>
 		<module>amb</module>
 		<module>common</module>
 		<module>rmb</module>
