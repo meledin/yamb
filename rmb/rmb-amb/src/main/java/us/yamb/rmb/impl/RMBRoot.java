@@ -12,7 +12,6 @@ import us.yamb.rmb.Request;
 import us.yamb.rmb.Send;
 import us.yamb.rmb.impl.builders.RequestImpl;
 import us.yamb.rmb.impl.builders.SendBuilder;
-import us.yamb.rmb.impl.builders.SendImpl;
 
 public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
 {

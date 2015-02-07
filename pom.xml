@@ -102,4 +102,31 @@
 		<module>rmb</module>
 	</modules>
 	<inceptionYear>2014</inceptionYear>
+	<properties>
+		<trap.version>1.4.0-SNAPSHOT</trap.version>
+	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.ericsson.research.trap.transports</groupId>
+				<artifactId>wshttp-server-nano</artifactId>
+				<version>${trap.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ericsson.research.trap</groupId>
+				<artifactId>trap-utils-15</artifactId>
+				<version>${trap.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.11</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sf.flexjson</groupId>
+				<artifactId>flexjson</artifactId>
+				<version>3.3</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 </project>
