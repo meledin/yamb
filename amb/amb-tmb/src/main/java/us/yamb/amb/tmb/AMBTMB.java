@@ -17,16 +17,14 @@ import com.ericsson.research.trap.utils.Callback.SingleArgumentCallback;
 public class AMBTMB extends AMBase implements AMB, Handler
 {
 
-	String	                                   host;
-	int	                                       port;
 	Client	                                   client;
 
 	ConcurrentSkipListMap<String, ChannelImpl>	subs	= new ConcurrentSkipListMap<String, ChannelImpl>();
+    private String seed;
 
-	public AMBTMB(String host, int port, String name)
+	public AMBTMB(String seed, String name)
 	{
-		this.host = host;
-		this.port = port;
+		this.seed = seed;
 		
 		if (name != null)
 		client = new Client(name);
@@ -57,7 +55,7 @@ public class AMBTMB extends AMBase implements AMB, Handler
 
 		try
 		{
-			client.connect(host, port).setCallback(new SingleArgumentCallback<Boolean>()
+			client.connect(seed).setCallback(new SingleArgumentCallback<Boolean>()
 			{
 
 				public void receiveSingleArgumentCallback(Boolean result)
@@ -93,7 +91,7 @@ public class AMBTMB extends AMBase implements AMB, Handler
 
 	public String seedInfo()
 	{
-		return "ws://" + host + ":" + port;
+		return seed;
 	}
 
 	public void onDirect(String from, byte[] data)

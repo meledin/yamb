@@ -1,6 +1,7 @@
 package us.yamb.tmb;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.ByteBuffer;
 
 import com.ericsson.research.transport.ws.WSFactory;
@@ -94,13 +95,22 @@ public class Client
 		this.name = name;
 	}
 
-	public Callback<Boolean> connect(String host, int port) throws IllegalArgumentException, IOException
-	{
-		sock = WSFactory.createWebSocketClient(new WSURI("ws://" + host + ":" + port + "/ws"), wsl, WSFactory.VERSION_RFC_6455, null);
-		sock.open();
-		connectCb = new SingleCallback<Boolean>();
-		return connectCb;
-	}
+    public Callback<Boolean> connect(String src) throws IllegalArgumentException, IOException
+    {
+
+        URI uri = URI.create(src);
+        String host = uri.getHost();
+        int port = uri.getPort();
+        return connect(host, port);
+    }
+
+    public Callback<Boolean> connect(String host, int port) throws IllegalArgumentException, IOException
+    {
+        sock = WSFactory.createWebSocketClient(new WSURI("ws://" + host + ":" + port + "/ws"), wsl, WSFactory.VERSION_RFC_6455, null);
+        sock.open();
+        connectCb = new SingleCallback<Boolean>();
+        return connectCb;
+    }
 
 	protected void handle(Message m, WSListener wsListener)
 	{

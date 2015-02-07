@@ -7,7 +7,6 @@ import us.yamb.amb.rabbit.AMBRabbit;
 
 public class AMBBuilderImpl extends AMBBuilder
 {
-
 	String host;
 	int port;
 

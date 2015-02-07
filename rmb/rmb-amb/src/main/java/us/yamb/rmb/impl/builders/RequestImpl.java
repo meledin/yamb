@@ -200,4 +200,10 @@ class ResponseImpl implements Reply
 		return out.toString();
 	}
 
+    @Override
+    public int status()
+    {
+        return msg.status();
+    }
+
 }

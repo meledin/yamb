@@ -17,6 +17,8 @@ public interface Message
     
     public String string();
     
+    public int status();
+    
     public <T> T object(Class<T> baseClass);
     
     public boolean confirmed();
