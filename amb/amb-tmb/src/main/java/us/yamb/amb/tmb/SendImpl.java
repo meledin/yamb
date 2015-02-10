@@ -1,10 +1,10 @@
 package us.yamb.amb.tmb;
 
-import com.ericsson.research.trap.utils.StringUtil;
-
 import us.yamb.amb.Send;
 import us.yamb.amb.callbacks.AMBCallbackInterface;
 import us.yamb.amb.spi.ObservableBase;
+
+import com.ericsson.research.trap.utils.StringUtil;
 
 public class SendImpl extends ObservableBase<AMBCallbackInterface, Send> implements Send
 {

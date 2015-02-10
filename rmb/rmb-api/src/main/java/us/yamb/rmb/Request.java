@@ -17,6 +17,8 @@ public interface Request extends RestMessageBuilder<Request>
 	AsyncResult<Reply> execute() throws IOException;
 
 	void execute(AsyncResultCallback<Reply> callback) throws IOException;
+	
+	void send() throws IOException;
 
 	Request timeout(long msec);
 }

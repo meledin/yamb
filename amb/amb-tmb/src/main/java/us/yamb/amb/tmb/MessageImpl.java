@@ -1,8 +1,8 @@
 package us.yamb.amb.tmb;
 
-import com.ericsson.research.trap.utils.StringUtil;
-
 import us.yamb.amb.Message;
+
+import com.ericsson.research.trap.utils.StringUtil;
 
 public class MessageImpl implements Message
 {

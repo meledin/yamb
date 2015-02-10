@@ -4,11 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 
-import com.ericsson.research.trap.utils.StringUtil;
-
 import us.yamb.amb.Send;
 import us.yamb.amb.callbacks.AMBCallbackInterface;
 import us.yamb.amb.spi.ObservableBase;
+
+import com.ericsson.research.trap.utils.StringUtil;
 
 public class SendImpl extends ObservableBase<AMBCallbackInterface, Send> implements Send
 {

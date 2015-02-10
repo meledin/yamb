@@ -1,5 +1,7 @@
 package us.yamb.rmb.impl;
 
+import java.io.IOException;
+
 import us.yamb.amb.AMB;
 import us.yamb.amb.Channel;
 import us.yamb.amb.Message;
@@ -77,7 +79,15 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     public void onmessage(AMB amb, Message message)
     {
         RMBMessage<?> msg = RMBMessage.deserialize(message.bytes());
-        dispatch(msg, 1);
+        if (!dispatch(msg, 1)) {
+            try
+            {
+                this.message().to(msg.from()).status(404).send();
+            }
+            catch (IOException e)
+            {
+            }
+        };
     }
 
     @Override

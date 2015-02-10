@@ -289,7 +289,7 @@
 			switch(m.op) {
 			
 				case Message.Operation.HELLO:
-					mt.name = m.to;
+					mt.name = m.to
 					if (!!mt.onopen)
 						mt.onopen();
 					break;

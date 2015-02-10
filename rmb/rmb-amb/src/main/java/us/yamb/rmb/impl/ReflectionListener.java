@@ -309,7 +309,6 @@ public class ReflectionListener
             
             Object rv;
             Response resp = null;
-            
             try
             {
                 rv = this.m.invoke(this.o, objs.toArray());

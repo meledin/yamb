@@ -2,8 +2,6 @@ package us.yamb.rmb.impl.builders;
 
 import java.io.IOException;
 
-import com.ericsson.research.trap.utils.ThreadPool;
-
 import us.yamb.amb.Send;
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.mb.callbacks.AsyncResult;
@@ -16,6 +14,8 @@ import us.yamb.rmb.Request;
 import us.yamb.rmb.Request.Reply;
 import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBMessage;
+
+import com.ericsson.research.trap.utils.ThreadPool;
 
 public class RequestImpl extends SendImpl<Request> implements Request
 {
