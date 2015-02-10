@@ -120,6 +120,7 @@ public class ReflectionListener
     private String             regex;
     private Pattern            pattern;
     private String             dispatcherPath;
+    @SuppressWarnings("unused")
     private String             identifier;
     private RMBImpl            rmb;
     

@@ -102,8 +102,8 @@
 		<module>rmb</module>
 	</modules>
 	<inceptionYear>2014</inceptionYear>
-	<properties>
-		<trap.version>1.4.0-SNAPSHOT</trap.version>
+ 	<properties>
+		<trap.version>1.4.1-SNAPSHOT</trap.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>

@@ -13,7 +13,7 @@
 		<module>rmb-common</module>
 		<module>rmb-amb</module>
 		<module>rmb-tmb-trap</module>
-	</modules>
+	</modules> 
 
 	<repositories>
 		<repository>
