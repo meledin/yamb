@@ -27,7 +27,7 @@ public class RMBMessage<T> implements Message, JSONSerializable
     @Override
     public Collection<String> getFieldNames()
     {
-        return Arrays.asList("from", "to", "method", "headers", "data", "confirmed");
+        return Arrays.asList("from", "to", "method", "headers", "data", "confirmed", "status");
     }
     
     @Override
