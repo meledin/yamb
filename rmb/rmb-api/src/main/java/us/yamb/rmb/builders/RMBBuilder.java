@@ -29,12 +29,34 @@ public abstract class RMBBuilder
 	 */
 	public abstract RMBBuilder id(String id);
 
+	/**
+	 * Configures further, optional parameters. The values of these parameters depends on the implementation.
+	 * @param key The key to configure
+	 * @param value The value to set
+	 * @return This builder, for chaining.
+	 */
 	public abstract RMBBuilder configure(String key, Object value);
 
+	/**
+	 * Fetches the configuration set
+	 * @param key The key to fetch the value for
+	 * @return The value associated with <i>key</i>
+	 */
 	public abstract Object getConfig(String key);
 
+	/**
+	 * Builds the RMB instance.
+	 * @return A new RMB instance, created according to the builder specification
+	 */
 	public abstract RMB build();
 
+	/**
+	 * Creates a new RMB Builder
+	 * @return
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws ClassNotFoundException
+	 */
 	public static RMBBuilder builder() throws InstantiationException, IllegalAccessException, ClassNotFoundException
 	{
 		return (RMBBuilder) Class.forName(RMBBuilder.class.getCanonicalName() + "Impl").newInstance();

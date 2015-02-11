@@ -1,5 +1,6 @@
 package us.yamb.rmb.impl;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,7 +10,9 @@ import java.util.stream.Collectors;
 import us.yamb.rmb.Location;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
+import us.yamb.rmb.Response;
 import us.yamb.rmb.Send;
+import us.yamb.rmb.Response.ResponseException;
 import us.yamb.rmb.builders.ChannelBuilder;
 import us.yamb.rmb.builders.PipeBuilder;
 import us.yamb.rmb.callbacks.OnDelete;
@@ -196,6 +199,8 @@ public abstract class RMBImpl implements RMB
         
         if (msg.to().parts.length == idx || pathMatcher.test(msg.to))
         {
+        	try
+        	{
             // This message is to me!
             switch (msg.method())
             {
@@ -252,6 +257,27 @@ public abstract class RMBImpl implements RMB
             }
             
             return false;
+        	}
+        	catch(ResponseException e) {
+        		try
+                {
+	                e.response().send(this);
+                }
+                catch (IOException e1)
+                {
+	                e1.printStackTrace();
+                }
+        	}
+        	catch(Exception e) {
+        		try
+                {
+	                Response.create(msg).status(500).data(e.getMessage()).send(this);
+                }
+                catch (IOException e1)
+                {
+	                e1.printStackTrace();
+                }
+        	}
             
         }
         

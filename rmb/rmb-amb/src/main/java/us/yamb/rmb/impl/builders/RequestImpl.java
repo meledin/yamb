@@ -35,7 +35,10 @@ public class RequestImpl extends SendImpl<Request> implements Request
 		RMB resp = rmb.create();
 		AsyncResultImpl<Reply> rv = new AsyncResultImpl<Request.Reply>();
 		resp.onmessage(msg -> rv.completed(new ResponseImpl(msg)));
-		ThreadPool.executeAfter(() -> {
+		ThreadPool.executeAfter(() -> { 
+			
+			resp.remove();
+			
 			if (rv.called)
 				return;
 
