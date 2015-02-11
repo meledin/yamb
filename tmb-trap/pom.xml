@@ -25,6 +25,10 @@
 			<version>1.7.10</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.ericsson.research.trap</groupId>
+			<artifactId>trap-js</artifactId>
+		</dependency>
 	</dependencies>
 
 	<repositories>

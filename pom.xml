@@ -132,6 +132,11 @@
 				<artifactId>flexjson</artifactId>
 				<version>3.3</version>
 			</dependency>
+			<dependency>
+				<groupId>com.ericsson.research.trap</groupId>
+				<artifactId>trap-js</artifactId>
+				<version>1.4.1-SNAPSHOT</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 </project>

@@ -2,6 +2,7 @@ package us.yamb.tmb;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -9,11 +10,13 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import com.ericsson.research.trap.TrapEndpoint;
 import com.ericsson.research.trap.TrapException;
 import com.ericsson.research.trap.TrapFactory;
+import com.ericsson.research.trap.TrapJS;
 import com.ericsson.research.trap.TrapListener;
 import com.ericsson.research.trap.delegates.OnAccept;
 import com.ericsson.research.trap.delegates.OnClose;
 import com.ericsson.research.trap.delegates.OnData;
 import com.ericsson.research.trap.delegates.OnError;
+import com.ericsson.research.trap.spi.nhttp.handlers.Resource;
 import com.ericsson.research.trap.utils.Callback;
 import com.ericsson.research.trap.utils.UID;
 import com.ericsson.research.trap.utils.impl.SingleCallback;
@@ -21,6 +24,9 @@ import com.ericsson.research.trap.utils.impl.SingleCallback;
 public class Broker implements OnAccept, OnError
 {
     private static Broker                                                broker;
+    private static Resource trapjs;
+    private static Resource brokerjs;
+    private static Resource testhtml;
     private ConcurrentLinkedQueue<Client>                                connecting = new ConcurrentLinkedQueue<Client>();
     private static final ConcurrentLinkedQueue<Client>                   nullQueue  = new ConcurrentLinkedQueue<Broker.Client>();
     private ConcurrentSkipListMap<String, ConcurrentLinkedQueue<Client>> subs       = new ConcurrentSkipListMap<String, ConcurrentLinkedQueue<Client>>();
@@ -32,12 +38,26 @@ public class Broker implements OnAccept, OnError
     {
         broker = new Broker();
         broker.listen(args.length > 1 ? args[0] : "127.0.0.1", args.length > 2 ? Integer.parseInt(args[1]) : 1443);
+        
+        trapjs = new Resource(() -> TrapJS.getFull());
+        brokerjs = new Resource(() -> Broker.getFull());
+        testhtml = new Resource(() -> Broker.class.getClassLoader().getResourceAsStream("test.html"));
+
+        broker.getServer().getHostingTransport("http").addHostedObject(trapjs, "trap-full.js");
+        broker.getServer().getHostingTransport("http").addHostedObject(brokerjs, "tmb.js");
+        broker.getServer().getHostingTransport("http").addHostedObject(testhtml, "test.html");
+        
         System.out.println(broker.getURI());
         
         for (;;)
             Thread.sleep(1000);
     }
     
+    public static InputStream getFull()
+    {
+        return Broker.class.getClassLoader().getResourceAsStream("tmb.js");
+    }
+
     public Callback<Boolean> listen(String host, int port)
     {
         this.cb = new SingleCallback<Boolean>();

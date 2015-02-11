@@ -1,5 +1,6 @@
 package us.yamb.amb.tmb;
 
+import java.io.InputStream;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import us.yamb.amb.AMB;
@@ -118,6 +119,10 @@ public class AMBTMB extends AMBase implements AMB, Handler
 		status = AMBStatus.DISCONNECTED;
 		if (ondisconnect != null)
 			ondisconnect.ondisconnect(this);
+	}
+	
+	public static InputStream ambJS() {
+	    return AMBTMB.class.getClassLoader().getResourceAsStream("amb-tmb.js");
 	}
 
 }
