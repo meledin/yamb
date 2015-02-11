@@ -9,6 +9,7 @@ package us.yamb.rmb.examples;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request.Reply;
+import us.yamb.rmb.Response;
 import us.yamb.rmb.builders.RMBBuilder;
 
 /**
@@ -76,6 +77,12 @@ public class RMBTutorial
         // This will send a message to the above listener, which will print out "Hello" in stderr.
         rmb.post(res.id()).data("Hi there").send();
         
+        // Another basic need is to create replies to incoming messages. If a resource processes a message, and needs to return a response,
+        // the Response object is a perfect candidate.
+        res.onget(getRequest -> {
+        	// This throws a ResponseException, which will be sent by RMB automatically.
+        	Response.create(getRequest).data("This is a reply!").throwException();
+        });
         
     }
 }

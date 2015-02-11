@@ -108,4 +108,10 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     {
         return amb.message();
     }
+
+	@Override
+    public void remove()
+    {
+		// No effect on root
+    }
 }

@@ -64,7 +64,8 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 	public void add(Object restObject);
 
 	/**
-	 * Creates a new Request object, which sends a message and expects a single reply.
+	 * Creates a new Request object, which sends a message and expects a single
+	 * reply.
 	 * 
 	 * @return
 	 */
@@ -82,25 +83,162 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 	 */
 	public PipeBuilder pipe();
 
-    public Request get(String to);
-    public Request get(Location to);
+	/**
+	 * Create a GET request to the given location. The parameter will be
+	 * automatically parsed as a {@link Location} object.
+	 * 
+	 * @param to
+	 *            The location to send a GET to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request get(String to);
 
-    public Request put(String to);
-    public Request put(Location to);
+	/**
+	 * Create a GET request to the given location.
+	 * 
+	 * @param to
+	 *            The location to send a GET to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request get(Location to);
 
-    public Request post(String to);
-    public Request post(Location to);
+	/**
+	 * Create a PUT request to the given location. The parameter will be
+	 * automatically parsed as a {@link Location} object.
+	 * 
+	 * @param to
+	 *            The location to send a PUT to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request put(String to);
 
-    public Request delete(String to);
-    public Request delete(Location to);
-	
-    public RMB ondelete(OnDelete cb);
-    public RMB ondisconnect(OnDisconnect cb);
-    public RMB onget(OnGet cb);
-    public RMB onhead(OnHead cb);
-    public RMB onmessage(OnMessage cb);
-    public RMB onpipe(OnPipe cb);
-    public RMB onpost(OnPost cb);
-    public RMB onput(OnPut cb);
+	/**
+	 * Create a PUT request to the given location.
+	 * 
+	 * @param to
+	 *            The location to send a PUT to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request put(Location to);
+
+	/**
+	 * Create a POST request to the given location. The parameter will be
+	 * automatically parsed as a {@link Location} object.
+	 * 
+	 * @param to
+	 *            The location to send a POST to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request post(String to);
+
+	/**
+	 * Create a POST request to the given location.
+	 * 
+	 * @param to
+	 *            The location to send a POST to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request post(Location to);
+
+	/**
+	 * Create a DELETE request to the given location. The parameter will be
+	 * automatically parsed as a {@link Location} object.
+	 * 
+	 * @param to
+	 *            The location to send a DELETE to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request delete(String to);
+
+	/**
+	 * Create a DELETE request to the given location.
+	 * 
+	 * @param to
+	 *            The location to send a DELETE to
+	 * @return A {@link Request} builder, to construct a request.
+	 */
+	public Request delete(Location to);
+
+	/**
+	 * Sets a handler that will be called when the connection to the message
+	 * broker is broken. This can be used for cleanup/error handling purposes.
+	 * 
+	 * @param cb
+	 * @return
+	 */
+	public RMB ondisconnect(OnDisconnect cb);
+
+	/**
+	 * Sets a handler to be called when a DELETE message is received by this
+	 * node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB ondelete(OnDelete cb);
+
+	/**
+	 * Sets a handler to be called when a GET message is received by this node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB onget(OnGet cb);
+
+	/**
+	 * Sets a handler to be called when a HEAD message is received by this node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB onhead(OnHead cb);
+
+	/**
+	 * Sets a handler to be called when a message with an unknown method, or
+	 * with a method that was not handled by a more specific handler, is
+	 * received by this node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB onmessage(OnMessage cb);
+
+	/**
+	 * Sets a handler to be called when a PIPE request is received by this node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB onpipe(OnPipe cb);
+
+	/**
+	 * Sets a handler to be called when a POST message is received by this node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB onpost(OnPost cb);
+
+	/**
+	 * Sets a handler to be called when a PUT message is received by this node.
+	 * 
+	 * @param cb
+	 *            The handler to call
+	 * @return This object, for chaining
+	 */
+	public RMB onput(OnPut cb);
+
+	/**
+	 * Remove this RMB instance from the tree. This will disconnect any children
+	 * of this instance, if any. This method is a no-op if called on the root
+	 * RMB instance.
+	 */
+	public void remove();
 
 }

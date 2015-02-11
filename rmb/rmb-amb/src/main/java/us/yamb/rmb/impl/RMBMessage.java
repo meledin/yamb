@@ -177,13 +177,26 @@ public class RMBMessage<T> implements Message, JSONSerializable
         to(new Location(id));
         return (T) this;
     }
+
+	@SuppressWarnings("unchecked")
+	public T header(String name, String value)
+	{
+		headers.put(name, value);
+		return (T) this;
+	}
     
     /**
      * Converts a message to a human readable representation.
      */
     public String toString()
     {
-        StringBuffer out = new StringBuffer("[--------\n");
+        StringBuffer out = new StringBuffer("[ ");
+        out.append(method);
+        out.append(" ");
+        out.append(from);
+        out.append(" -> ");
+        out.append(to);
+        out.append("\n");
         for (Iterator<String> it = this.headers.values().iterator(); it.hasNext();)
         {
             String key = it.next();
@@ -219,7 +232,7 @@ public class RMBMessage<T> implements Message, JSONSerializable
                 }
             }
         }
-        out.append("\n]-------- ");
+        out.append("\n]  ");
         out.append(Integer.toString(out.length() - 21));
         out.append(" bytes with ");
         if (this.data != null)

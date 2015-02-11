@@ -71,5 +71,11 @@ public class RMBChild extends RMBImpl
     {
         return parent._ambSend();
     }
+
+	@Override
+    public void remove()
+    {
+		parent.children.remove(name);
+    }
     
 }
