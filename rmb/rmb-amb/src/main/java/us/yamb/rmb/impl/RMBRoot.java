@@ -17,101 +17,122 @@ import us.yamb.rmb.impl.builders.SendBuilder;
 
 public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
 {
-
-	private AMB	amb;
-
-	public RMBRoot(AMB amb)
-	{
-		this.amb = amb;
-		amb.setCallback(this);
-	}
-
-	public String id()
-	{
-		if (name == null)
-			throw new IllegalStateException("Cannot get ID of RMB that is not connected");
-		
-		return "/"+name;
-	}
-
-	public AsyncResult<Exception> connect()
-	{
-		return amb.connect();
-	}
-
-	public void disconnect()
-	{
-		amb.disconnect();
-	}
-
-	public RMBStatus status()
+    
+    private AMB amb;
+    
+    public RMBRoot(AMB amb)
     {
-		switch(amb.status())
-		{
-			case CONNECTED:
-				return RMBStatus.CONNECTED;
-			case CONNECTING:
-				return RMBStatus.CONNECTING;
-			case DISCONNECTED:
-			default:
-				return RMBStatus.DISCONNECTED;
-			
-		}
+        this.amb = amb;
+        amb.setCallback(this);
     }
-
-	public void onconnect(AMB amb)
+    
+    public String id()
     {
-		this.name = amb.id();
+        if (name == null)
+            throw new IllegalStateException("Cannot get ID of RMB that is not connected");
+        
+        return "/" + name;
     }
-
-	@Override
-	public Send message(RMBImpl res)
+    
+    public AsyncResult<Exception> connect()
     {
-	    return new SendBuilder(res, amb.message());
+        return amb.connect();
     }
-
-	@Override
-	public String seedInfo() {
-		return amb.seedInfo();
-	}
-
+    
+    public void disconnect()
+    {
+        amb.disconnect();
+    }
+    
+    public RMBStatus status()
+    {
+        switch (amb.status())
+        {
+            case CONNECTED:
+                return RMBStatus.CONNECTED;
+            case CONNECTING:
+                return RMBStatus.CONNECTING;
+            case DISCONNECTED:
+            default:
+                return RMBStatus.DISCONNECTED;
+                
+        }
+    }
+    
+    public void onconnect(AMB amb)
+    {
+        this.name = amb.id();
+    }
+    
+    @Override
+    public Send message(RMBImpl res)
+    {
+        return new SendBuilder(res, amb.message());
+    }
+    
+    @Override
+    public String seedInfo()
+    {
+        return amb.seedInfo();
+    }
+    
     @Override
     public void onmessage(AMB amb, Message message)
     {
         RMBMessage<?> msg = RMBMessage.deserialize(message.bytes());
-        if (!dispatch(msg, 1)) {
+        try
+        {
+            if (!dispatch(msg, 1))
+            {
+                try
+                {
+                    if (msg.status() < 300)
+                        this.message().to(msg.from()).status(404).send();
+                    else // TODO: Log this instead.
+                        System.err.println(msg);
+                }
+                catch (IOException e)
+                {
+                }
+            }
+            ;
+        }
+        catch (Exception e)
+        {
+            
             try
             {
-                this.message().to(msg.from()).status(404).send();
+                e.printStackTrace();
+                this.message().to(msg.from()).status(500).data(e.getMessage()).send();
             }
-            catch (IOException e)
+            catch (IOException e1)
             {
             }
-        };
+        }
     }
-
+    
     @Override
     public void onchannel(AMB amb, Channel channel, Message message)
     {
         // TODO Auto-generated method stub
         
     }
-
+    
     @Override
     public Request request(RMBImpl res)
     {
         return new RequestImpl(res, amb.message());
     }
-
+    
     @Override
     public us.yamb.amb.Send _ambSend()
     {
         return amb.message();
     }
-
-	@Override
+    
+    @Override
     public void remove()
     {
-		// No effect on root
+        // No effect on root
     }
 }

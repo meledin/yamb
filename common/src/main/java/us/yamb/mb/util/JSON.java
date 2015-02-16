@@ -124,7 +124,7 @@ public class JSON
      */
     public static <T> T fromJSON(InputStream is, Class<T> c)
     {
-        return new JSONDeserializer<T>().use(Object.class, new FieldObjectFactory()).deserialize(new InputStreamReader(is), c);
+        return new JSONDeserializer<T>().use(UUID.class, new UUIDFactory()).use(Object.class, new FieldObjectFactory()).deserialize(new InputStreamReader(is), c);
     }
     
     /**
@@ -140,7 +140,7 @@ public class JSON
     {
         try
         {
-            return new JSONDeserializer<T>().use(Object.class, new FieldObjectFactory()).deserialize(s, c);
+            return new JSONDeserializer<T>().use(UUID.class, new UUIDFactory()).use(Object.class, new FieldObjectFactory()).deserialize(s, c);
         }
         catch (Exception e)
         {
@@ -238,6 +238,12 @@ class FieldTransformer extends ObjectTransformer
         return obj.getClass();
     }
     
+}
+
+class UUIDFactory extends BeanObjectFactory {
+    public Object instantiate(ObjectBinder context, Object value, Type targetType, Class targetClass) {
+       return UUID.fromString(value.toString());
+    }
 }
 
 class FieldObjectFactory extends BeanObjectFactory

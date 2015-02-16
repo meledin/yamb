@@ -97,7 +97,12 @@ public abstract class RMBImpl implements RMB
         return create(UID.randomUID());
     }
     
-    public synchronized RMB create(String id)
+    public RMB create(String id)
+    {
+        return create(id, false);
+    }
+    
+    public synchronized RMB create(String id, boolean regexp)
     {
         
         if (id.startsWith("/"))
@@ -105,7 +110,7 @@ public abstract class RMBImpl implements RMB
         
         String[] parts = id.split("/");
         
-        if (parts.length >= 2)
+        if (parts.length >= 2 && !regexp)
         {
             String subparts = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).collect(Collectors.joining("/"));
             return create(parts[0]).create(subparts);
@@ -114,7 +119,7 @@ public abstract class RMBImpl implements RMB
         if (children.get(id) != null)
             return children.get(id);
         
-        RMBChild child = new RMBChild(this, id);
+        RMBChild child = new RMBChild(this, id, regexp);
         
         children.put(id, child);
         
@@ -271,6 +276,7 @@ public abstract class RMBImpl implements RMB
         	catch(Exception e) {
         		try
                 {
+        		    e.printStackTrace();
 	                Response.create(msg).status(500).data(e.getMessage()).send(this);
                 }
                 catch (IOException e1)

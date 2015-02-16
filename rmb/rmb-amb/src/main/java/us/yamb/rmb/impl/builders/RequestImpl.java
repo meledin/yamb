@@ -63,6 +63,19 @@ public class RequestImpl extends SendImpl<Request> implements Request
 		return this;
 	}
 
+    @Override
+    public void execute(AsyncResultCallback<Reply> callback, AsyncResultCallback<IOException> exceptionHandler)
+    {
+        try
+        {
+            execute(callback);
+        }
+        catch (IOException e)
+        {
+            exceptionHandler.completed(e);
+        }
+    }
+
 }
 
 class ResponseImpl implements Reply

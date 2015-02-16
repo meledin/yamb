@@ -53,6 +53,14 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
 	 * @return
 	 */
 	public RMB create(String id);
+	
+	/**
+	 * Creates a resource whose ID is a regular expression, and will not be split on slashes.
+	 * @param id
+	 * @param regexp
+	 * @return
+	 */
+	public RMB create(String id, boolean regexp);
 
 	/**
 	 * Instruments an object as a REST object, reading the applicable

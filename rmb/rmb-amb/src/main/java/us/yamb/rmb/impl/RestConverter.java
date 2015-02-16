@@ -161,6 +161,9 @@ public class RestConverter
             // Generate the dispatcher path.
             // This is a constant string until the first variable element (i.e. { element)
             ReflectionListener listener = new ReflectionListener(rmb, instance, m, listenerPath);
+            listener.register();
+            
+            /*
             String dispatcherPath = listener.getDispatcherPath().substring(1);
             
             RMB resource = dispatcherPath.trim().length() > 0 ? rmb.create(dispatcherPath) : rmb;
@@ -184,7 +187,7 @@ public class RestConverter
             }
             catch (Exception e)
             {
-            }
+            }*/
             
         }
     }

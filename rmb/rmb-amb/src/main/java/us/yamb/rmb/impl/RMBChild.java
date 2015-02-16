@@ -1,5 +1,7 @@
 package us.yamb.rmb.impl;
 
+import java.util.regex.Pattern;
+
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.RMBStatus;
@@ -11,12 +13,17 @@ public class RMBChild extends RMBImpl
     
     private RMBImpl parent;
     
-    public RMBChild(RMBImpl parent, String name)
+    public RMBChild(RMBImpl parent, String name, boolean regexp)
     {
         this.parent = parent;
         this.name = name;
         
-        if ("**".equals(name))
+        if (regexp)
+        {
+            Pattern pattern = Pattern.compile(name);
+            pathMatcher = arg -> pattern.matcher(arg).matches();
+        }
+        else if ("**".equals(name))
             pathMatcher = arg -> true;
     }
     
@@ -53,29 +60,29 @@ public class RMBChild extends RMBImpl
     }
     
     @Override
-    public synchronized RMB create(String id)
+    public synchronized RMB create(String id, boolean regexp)
     {
         if (id.startsWith("/"))
-            return parent.create(id);
-        return super.create(id);
+            return parent.create(id, regexp);
+        return super.create(id, regexp);
     }
-
+    
     @Override
     public Request request(RMBImpl res)
     {
         return parent.request(res);
     }
-
+    
     @Override
     public us.yamb.amb.Send _ambSend()
     {
         return parent._ambSend();
     }
-
-	@Override
+    
+    @Override
     public void remove()
     {
-		parent.children.remove(name);
+        parent.children.remove(name);
     }
     
 }

@@ -125,7 +125,8 @@ public class RMBMessage<T> implements Message, JSONSerializable
     @SuppressWarnings("unchecked")
     public T data(String data)
     {
-        data(StringUtil.toUtfBytes(data));
+        if (data != null)
+            data(StringUtil.toUtfBytes(data));
         return (T) this;
     }
     
