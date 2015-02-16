@@ -311,7 +311,7 @@ public class ReflectionListener
                 e.printStackTrace(pw);
                 Response.create().status(500).to(message).data(sw.toString()).send(rmb);
             }
-            else
+            else if (rv != null)
             {
                 Response.ok().to(message).data(rv).method("POST").send(rmb);
             }
