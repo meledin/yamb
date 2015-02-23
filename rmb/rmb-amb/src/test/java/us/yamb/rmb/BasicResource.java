@@ -23,8 +23,30 @@ public class BasicResource
         return "Hello!";
     }
     
+    @GET
+    @Path("test")
+    public String hi()
+    {
+        return "Hi!";
+    }
+    
+    @GET
+    @Path("{foo}/foo")
+    public String foo()
+    {
+        return "foo";
+    }
+    
+    @GET
+    @Path("{foo}/bar")
+    public String bar()
+    {
+        return "bar";
+    }
+    
     @POST
     public String process(Map<String, String> bodyParams) {
+        System.out.println("Process");
         return bodyParams.toString();
     }
     

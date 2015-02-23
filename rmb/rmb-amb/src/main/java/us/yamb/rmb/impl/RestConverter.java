@@ -2,7 +2,6 @@ package us.yamb.rmb.impl;
 
 import java.lang.reflect.Method;
 
-import us.yamb.rmb.RMB;
 import us.yamb.rmb.annotations.DELETE;
 import us.yamb.rmb.annotations.GET;
 import us.yamb.rmb.annotations.HEAD;

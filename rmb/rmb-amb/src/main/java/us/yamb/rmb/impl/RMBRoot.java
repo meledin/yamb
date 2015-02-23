@@ -95,7 +95,6 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
                 {
                 }
             }
-            ;
         }
         catch (Exception e)
         {

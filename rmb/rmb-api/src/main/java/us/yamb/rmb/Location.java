@@ -1,6 +1,7 @@
 package us.yamb.rmb;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -148,4 +149,26 @@ public class Location
         return path + (query != null ? "?"+query : "");
     }
 
+    
+    /**
+     * Returns a map containing the Location query parameters.
+     * 
+     * @return A map, the keys of which are parameter names and the values are their values.
+     */
+    public Map<String, String> getParameters()
+    {
+        if (this.query != null)
+        {
+            Map<String, String> parameters = new HashMap<String, String>();
+            StringTokenizer st = new StringTokenizer(this.query, "&");
+            while (st.hasMoreElements())
+            {
+                StringTokenizer st2 = new StringTokenizer(st.nextToken(), "=");
+                if (st2.hasMoreTokens())
+                    parameters.put(st2.nextToken(), st2.hasMoreTokens() ? st2.nextToken() : "");
+            }
+            return parameters;
+        }
+        return null;
+    }
 }

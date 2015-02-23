@@ -67,4 +67,10 @@ public class MessageImpl implements Message
 		this.payload = payload;
 	}
 
+    @Override
+    public String toString()
+    {
+        return from + "->" + to;
+    }
+
 }

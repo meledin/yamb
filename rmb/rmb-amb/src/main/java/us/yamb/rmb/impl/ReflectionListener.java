@@ -7,6 +7,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,7 @@ import us.yamb.rmb.annotations.POST;
 import us.yamb.rmb.annotations.PUT;
 import us.yamb.rmb.annotations.PathParam;
 import us.yamb.rmb.annotations.Produces;
+import us.yamb.rmb.annotations.QueryParam;
 
 /**
  * ReflectionListener is a wrapping class that allows objects to listen to messages at specific paths, with arbitrary method
@@ -136,42 +138,57 @@ public class ReflectionListener
         this.o = o;
         this.m = m;
         
-        this.regex = "/[^/]*";
+        this.regex = "";
         parts = this.listenerPath.split("/");
-        for (int i = 0; i < parts.length; i++)
-        {
-            String part = parts[i];
-            
-            this.regex += "/";
-            
-            if (!part.startsWith("{"))
-            {
-                this.rmb = this.rmb.create(part);
-                this.regex += part;
-                continue;
-            }
-            
-            // Find if the part has a custom regex
-            int colonIdx = part.lastIndexOf(":");
-            String partRegex = "([^/]*)";
-            String partName = part.substring(1, part.length() - 1);
-            
-            if (colonIdx > -1)
-            {
-                String[] regexBase = part.split(":");
-                partRegex = regexBase[1].trim();
-                partRegex = "(" + partRegex.substring(0, partRegex.length() - 1) + ")";
-                partName = regexBase[0].trim().substring(1);
-            }
-            
-            this.rmb = this.rmb.create(partRegex, true);
-            
-            this.regex += partRegex;
-            this.matcherGroups.add(partName);
-            
-        }
         
-        this.pattern = Pattern.compile(this.regex);
+        if (parts.length == 1)
+        {
+            if ("".equals(parts[0]))
+            {
+                // do nothing
+            }
+            else
+            {
+                this.rmb = rmb.create(listenerPath);
+                this.regex += "/" + listenerPath;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < parts.length; i++)
+            {
+                String part = parts[i];
+                
+                this.regex += "/";
+                
+                if (!part.startsWith("{"))
+                {
+                    
+                    this.rmb = this.rmb.create(part);
+                    this.regex += part;
+                    continue;
+                }
+                
+                // Find if the part has a custom regex
+                int colonIdx = part.lastIndexOf(":");
+                String partRegex = "([^/]*)";
+                String partName = part.substring(1, part.length() - 1);
+                
+                if (colonIdx > -1)
+                {
+                    String[] regexBase = part.split(":");
+                    partRegex = regexBase[1].trim();
+                    partRegex = "(" + partRegex.substring(0, partRegex.length() - 1) + ")";
+                    partName = regexBase[0].trim().substring(1);
+                }
+                
+                this.rmb = this.rmb.create(partRegex, true);
+                
+                this.regex += partRegex;
+                this.matcherGroups.add(partName);
+                
+            }
+        }
         
         /*
          * For the reflection listener, we'll create a new identifier, a composite of object and method.
@@ -201,10 +218,17 @@ public class ReflectionListener
         {
             HashMap<String, String> pathParams = null;
             
+            if (this.pattern == null)
+            {
+                this.pattern = Pattern.compile(rmb.id());
+            }
+            
             if (this.pattern != null)
             {
-                String path = message.to().toString();
+                String path = message.to().path;
                 Matcher matcher = this.pattern.matcher(path);
+                
+                //System.out.println("Reflecting [" + pattern + " from " + path + " to " + path + "] " + matcher.matches());
                 
                 if (!matcher.matches())
                     return;
@@ -224,6 +248,7 @@ public class ReflectionListener
             LinkedList<Object> objs = new LinkedList<Object>();
             Class<?>[] params = this.m.getParameterTypes();
             Annotation[][] annotations = this.m.getParameterAnnotations();
+            Map<String, String> parameters = message.to().getParameters();
             
             for (int i = 0; i < params.length; i++)
             {
@@ -238,6 +263,12 @@ public class ReflectionListener
                     {
                         String pathElement = ((PathParam) ann).value();
                         pathData = pathParams.get(pathElement);
+                    }
+                    else if (QueryParam.class.isInstance(ann))
+                    {
+                        pathData = parameters.get(((QueryParam) ann).name());
+                        if (pathData == null || pathData.trim().length() == 0)
+                            pathData = ((QueryParam) ann).value();
                     }
                     
                 }
