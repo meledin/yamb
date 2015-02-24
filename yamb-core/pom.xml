@@ -32,6 +32,16 @@
 			<url>https://nexus.d2dx.com/content/repositories/yamb-snapshots</url>
 		</repository>
 		<repository>
+			<id>trap-snapshots</id>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
+		<repository>
 			<id>yamb-releases</id>
 			<releases>
 				<enabled>true</enabled>
