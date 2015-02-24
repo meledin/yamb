@@ -42,5 +42,15 @@
 			</snapshots>
 			<url>https://nexus.d2dx.com/content/repositories/yamb-releases</url>
 		</repository>
+		<repository>
+			<id>trap-snapshots</id>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
 	</repositories>
 </project>
