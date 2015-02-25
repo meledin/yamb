@@ -8,9 +8,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.net.URI;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import flexjson.BeanAnalyzer;
@@ -30,18 +33,18 @@ import flexjson.transformer.ObjectTransformer;
 import flexjson.transformer.TransformerWrapper;
 
 /**
- * The JSON class provides convenience methods for serialising and deserialising JSON objects into Java objects. The
- * primitive JSON objects can automatically be cast into Java object, and more advanced Java objects can be JSONified
- * with no configuration. <h2>JSON to/from Java primitives</h2> Java primitives can be directly serialised to JSON. The
- * following commands exemplify this:
+ * The JSON class provides convenience methods for serialising and deserialising JSON objects into Java objects. The primitive
+ * JSON objects can automatically be cast into Java object, and more advanced Java objects can be JSONified with no
+ * configuration. <h2>JSON to/from Java primitives</h2> Java primitives can be directly serialised to JSON. The following
+ * commands exemplify this:
  * 
  * <pre>
  * Map&lt;String, String&gt; values = JSON.fromJSON(&quot;{\&quot;foo\&quot;:\&quot;bar\&quot;}&quot;, Map.class);
  * JSON.toJSON(values); // Produces {&quot;foo&quot;:&quot;bar&quot;}
  * </pre>
  * 
- * <h2>JSON to/from Java Objects</h2> This utility class can transform Java objects with fields to/from their respective
- * JSON representations. So, for example, a Java object as so:
+ * <h2>JSON to/from Java Objects</h2> This utility class can transform Java objects with fields to/from their respective JSON
+ * representations. So, for example, a Java object as so:
  * 
  * <pre>
  * class JSObj
@@ -58,33 +61,95 @@ import flexjson.transformer.TransformerWrapper;
  * JSObj o = JSON.fromJSON(&quot;...&quot;); // Will populate the fields foo and bar, trying to parse bar. Ignores all other fields
  * </pre>
  * 
- * Classes can be nested, so JSObj could contain a different Java class. These would also be serialised into JSON as
- * applicable.
+ * Classes can be nested, so JSObj could contain a different Java class. These would also be serialised into JSON as applicable.
  * 
  * @author Vladimir Katardjiev
  * @since 2.0
  */
 public class JSON
 {
+    
+    static Map<Class<?>, AbstractTransformer> xformers  = new HashMap<Class<?>, AbstractTransformer>();
+    static Map<Class<?>, ObjectFactory>       factories = new HashMap<Class<?>, ObjectFactory>();
+    
+    /**
+     * Adds a JSON Transform, capable of mapping a Java class to/from JSON in a specified manner.
+     * 
+     * @param c
+     *            The class to transform
+     * @param xform
+     *            A transformer, capable of serialising the object to JSON
+     * @param factory
+     *            A factory that can re-instantiate the object.
+     */
+    public static void addTransform(Class<?> c, AbstractTransformer xform, ObjectFactory factory)
+    {
+        xformers.put(c, xform);
+        factories.put(c, factory);
+    }
+    
+    static
+    {
+        FieldObjectFactory f = new FieldObjectFactory();
+        addTransform(JSONSerializable.class, new FieldTransformer(), f);
+        addTransform(void.class, new ExcludeTransformer(), f);
+        addTransform(UUID.class, new ToStringTransformer(), new UUIDFactory());
+        addTransform(URI.class, new ToStringTransformer(), new URIFactory());
+    }
+    
+    /**
+     * Creates a JSONSerialiser with the transformers included by
+     * {@link #addTransform(Class, AbstractTransformer, ObjectFactory)}.
+     * 
+     * @return
+     */
+    public static JSONSerializer serializer()
+    {
+        
+        JSONSerializer s = new JSONSerializer();
+        
+        for (Entry<Class<?>, AbstractTransformer> e : xformers.entrySet())
+        {
+            s.transform(e.getValue(), e.getKey());
+        }
+        
+        return s;
+    }
+    
+    /**
+     * Creates a JSONDeserializer with the transformers included by
+     * {@link #addTransform(Class, AbstractTransformer, ObjectFactory)}.
+     * 
+     * @return
+     */
+    public static <T> JSONDeserializer<T> deserializer()
+    {
+        JSONDeserializer<T> d = new JSONDeserializer<T>();
+        
+        for (Entry<Class<?>, ObjectFactory> e : factories.entrySet())
+        {
+            d.use(e.getKey(), e.getValue());
+        }
+        
+        d.use(Object.class, new FieldObjectFactory());
+        
+        return d;
+    }
+    
     /**
      * Serialises an object into JSON, returning the resulting string.
      * 
      * @param o
-     *            The object to serialize. May be any Java object, including collections or custom objects. Must not
-     *            include any reference loops.
+     *            The object to serialize. May be any Java object, including collections or custom objects. Must not include any
+     *            reference loops.
      * @param excludes
-     *            A list of fields to exclude from the serialization. This can be used to break loops. Fields are
-     *            nested, so foo.bar.field is acceptable to exclude "field" in "bar" in "foo".
+     *            A list of fields to exclude from the serialization. This can be used to break loops. Fields are nested, so
+     *            foo.bar.field is acceptable to exclude "field" in "bar" in "foo".
      * @return The JSON representation of the input, less the excludes.
      */
     public static String toJSON(Object o, String... excludes)
     {
-        JSONSerializer s = new JSONSerializer();
-        
-        //if (JSONSerializable.class.isAssignableFrom(o.getClass()))
-        s = s.transform(new FieldTransformer(), JSONSerializable.class);
-        s = s.transform(new ExcludeTransformer(), void.class);
-        s = s.transform(new UUIDTransformer(), UUID.class);
+        JSONSerializer s = serializer();
         
         // Let's be pretty for now...
         s.prettyPrint(true);
@@ -103,12 +168,7 @@ public class JSON
      */
     public static void toJSON(Object o, OutputStream stream)
     {
-        JSONSerializer s = new JSONSerializer();
-        
-        //if (JSONSerializable.class.isAssignableFrom(o.getClass()))
-        s = s.transform(new FieldTransformer(), JSONSerializable.class);
-        s = s.transform(new ExcludeTransformer(), void.class);
-        s = s.transform(new UUIDTransformer(), UUID.class);
+        JSONSerializer s = serializer();
         
         s.deepSerialize(o, new OutputStreamWriter(stream));
     }
@@ -122,9 +182,10 @@ public class JSON
      *            The class to instantiate from the stream.
      * @return A new object as deserialized from the stream.
      */
+    @SuppressWarnings("unchecked")
     public static <T> T fromJSON(InputStream is, Class<T> c)
     {
-        return new JSONDeserializer<T>().use(UUID.class, new UUIDFactory()).use(Object.class, new FieldObjectFactory()).deserialize(new InputStreamReader(is), c);
+        return (T) deserializer().deserialize(new InputStreamReader(is), c);
     }
     
     /**
@@ -136,16 +197,52 @@ public class JSON
      *            The class to instantiate from the stream.
      * @return A new object as deserialized from the stream.
      */
+    @SuppressWarnings("unchecked")
     public static <T> T fromJSON(String s, Class<T> c)
     {
         try
         {
-            return new JSONDeserializer<T>().use(UUID.class, new UUIDFactory()).use(Object.class, new FieldObjectFactory()).deserialize(s, c);
+            return (T) deserializer().deserialize(s, c);
         }
         catch (Exception e)
         {
             System.err.println(s);
             throw new IllegalArgumentException(s, e);
+        }
+    }
+    
+    /**
+     * The ExcludeTransformer is a transformer that will exclude whatever item it represents from inclusion with the JSON. This
+     * is useful for removing null values.
+     * 
+     * @author Vladimir Katardjiev
+     */
+    public static class ExcludeTransformer extends AbstractTransformer
+    {
+        
+        public Boolean isInline()
+        {
+            return true;
+        }
+        
+        public void transform(Object object)
+        {
+            // Do nothing, null objects are not serialized.
+            return;
+        }
+    }
+    
+    /**
+     * The ToStringTransformer will transform an object to JSON by calling its toString() method.
+     * 
+     * @author Vladimir Katardjiev
+     */
+    public static class ToStringTransformer extends AbstractTransformer
+    {
+        
+        public void transform(Object object)
+        {
+            this.getContext().writeQuoted(object.toString());
         }
     }
     
@@ -181,10 +278,11 @@ class FieldTransformer extends ObjectTransformer
                             f = c.getDeclaredField(name);
                             break;
                         }
-                        catch(NoSuchFieldException e) {
+                        catch (NoSuchFieldException e)
+                        {
                             c = c.getSuperclass();
                         }
-                    } while(object.getClass() != Object.class);
+                    } while (object.getClass() != Object.class);
                     
                     if (f == null)
                         throw new NoSuchFieldException("Field [" + name + "] not found in " + object.getClass());
@@ -240,9 +338,19 @@ class FieldTransformer extends ObjectTransformer
     
 }
 
-class UUIDFactory extends BeanObjectFactory {
-    public Object instantiate(ObjectBinder context, Object value, Type targetType, Class targetClass) {
-       return UUID.fromString(value.toString());
+class UUIDFactory extends BeanObjectFactory
+{
+    public Object instantiate(ObjectBinder context, Object value, Type targetType, @SuppressWarnings("rawtypes") Class targetClass)
+    {
+        return UUID.fromString(value.toString());
+    }
+}
+
+class URIFactory extends BeanObjectFactory
+{
+    public Object instantiate(ObjectBinder context, Object value, Type targetType, @SuppressWarnings("rawtypes") Class targetClass)
+    {
+        return URI.create(value.toString());
     }
 }
 
@@ -357,28 +465,4 @@ class FieldAnalyzer extends BeanAnalyzer
         super(clazz);
     }
     
-}
-
-class ExcludeTransformer extends AbstractTransformer
-{
-    
-    public Boolean isInline()
-    {
-        return true;
-    }
-    
-    public void transform(Object object)
-    {
-        // Do nothing, null objects are not serialized.
-        return;
-    }
-}
-
-class UUIDTransformer extends AbstractTransformer
-{
-    
-    public void transform(Object object)
-    {
-        this.getContext().writeQuoted(object.toString());
-    }
 }

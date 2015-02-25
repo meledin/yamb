@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -327,11 +328,36 @@ public class ReflectionListener
                 rv = e;
             }
             
-            if (rv instanceof ResponseException)
-                resp = ((ResponseException) rv).response();
+            // Check the tree for a ResponseException
+            if (rv instanceof Throwable)
+            {
+                Throwable e = (Throwable) rv;
+                
+                while (e instanceof InvocationTargetException)
+                {
+                    
+                    Throwable cause = e.getCause();
+                    
+                    if (cause == null)
+                        cause = ((InvocationTargetException) e).getTargetException();
+                    
+                    if (cause == null)
+                        break;
+                    
+                    e = cause;
+                }
+                
+                while (!(e instanceof ResponseException) && e.getCause() != null && e.getCause() != e.getCause())
+                    e = e.getCause();
+                
+                if (e instanceof ResponseException)
+                    resp = ((ResponseException) e).response();
+                
+            }
             
             if (resp != null)
             {
+                resp.to(message.from());
                 resp.send(rmb);
             }
             else if (rv instanceof Exception)
