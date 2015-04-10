@@ -70,6 +70,10 @@ public class RMBChild extends RMBImpl
     @Override
     public Request request(RMBImpl res)
     {
+        
+        if (res == this && this.name.startsWith("("))
+            res = parent;
+        
         return parent.request(res);
     }
     

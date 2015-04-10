@@ -15,6 +15,8 @@ import us.yamb.rmb.Send;
 import us.yamb.rmb.impl.builders.RequestImpl;
 import us.yamb.rmb.impl.builders.SendBuilder;
 
+import com.ericsson.research.trap.utils.ThreadPool;
+
 public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
 {
     
@@ -79,35 +81,43 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     @Override
     public void onmessage(AMB amb, Message message)
     {
-        RMBMessage<?> msg = RMBMessage.deserialize(message.bytes());
-        try
-        {
-            if (!dispatch(msg, 1))
+        
+        ThreadPool.executeCached(new Runnable() {
+            
+            @Override
+            public void run()
             {
+                RMBMessage<?> msg = RMBMessage.deserialize(message.bytes());
                 try
                 {
-                    if (msg.status() < 300)
-                        this.message().to(msg.from()).status(404).send();
-                    else // TODO: Log this instead.
-                        System.err.println(msg);
+                    if (!dispatch(msg, 1))
+                    {
+                        try
+                        {
+                            if (msg.status() < 100)
+                                message().to(msg.from()).status(404).send();
+                            else if (msg.status() >= 300)
+                                System.err.println(msg);
+                        }
+                        catch (IOException e)
+                        {
+                        }
+                    }
                 }
-                catch (IOException e)
+                catch (Exception e)
                 {
+                    
+                    try
+                    {
+                        e.printStackTrace();
+                        message().to(msg.from()).status(500).data(e.getMessage()).send();
+                    }
+                    catch (IOException e1)
+                    {
+                    }
                 }
             }
-        }
-        catch (Exception e)
-        {
-            
-            try
-            {
-                e.printStackTrace();
-                this.message().to(msg.from()).status(500).data(e.getMessage()).send();
-            }
-            catch (IOException e1)
-            {
-            }
-        }
+        });
     }
     
     @Override

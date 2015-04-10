@@ -47,7 +47,14 @@ public abstract class RMBImpl implements RMB
     protected OnMessage                           onmessage;
     protected OnHead                              onhead;
     
-    protected Predicate<String>                   pathMatcher = path -> name.equals(path);
+    protected Predicate<String>                   pathMatcher = path -> {
+        if (name == null || path == null)
+        {
+            System.err.println("Name-or-path is null: " + name + ", " + path);
+            return false;
+        }
+       return name.equals(path);
+    };
     
     protected ConcurrentHashMap<String, RMBChild> children    = new ConcurrentHashMap<>();
     protected LinkedList<Object>                  objects     = new LinkedList<>();
@@ -76,8 +83,23 @@ public abstract class RMBImpl implements RMB
     
     public RMB setCallback(RMBCallbackInterface callback)
     {
-        System.out.println(callback);
-        return null;
+        if (callback instanceof OnPipe)
+            onpipe((OnPipe) callback);
+        if (callback instanceof OnPost)
+            onpost((OnPost) callback);
+        if (callback instanceof OnDelete)
+            ondelete((OnDelete) callback);
+        if (callback instanceof OnGet)
+            onget((OnGet) callback);
+        if (callback instanceof OnPut)
+            onput((OnPut) callback);
+        if (callback instanceof OnDisconnect)
+            ondisconnect((OnDisconnect) callback);
+        if (callback instanceof OnMessage)
+            onmessage((OnMessage) callback);
+        if (callback instanceof OnHead)
+            onhead((OnHead) callback);
+        return this;
     }
     
     public RMB setCallback(Class<? extends RMBCallbackInterface> callbackType, Object object, String function) throws NoSuchMethodException

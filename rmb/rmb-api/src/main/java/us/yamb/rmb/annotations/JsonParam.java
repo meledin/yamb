@@ -7,14 +7,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a method as accessible via the HEAD method.
+ * Marks a parameter as to be parsed from the body of the caller.
  * 
  * @author Vladimir Katardjiev
  */
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.METHOD })
-public @interface HEAD
+@Target({ ElementType.TYPE, ElementType.PARAMETER })
+public @interface JsonParam
 {
-	
+    public abstract String value();
 }

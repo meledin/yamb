@@ -6,12 +6,19 @@ import java.io.StringWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import us.yamb.mb.callbacks.AsyncResult;
+import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
 import us.yamb.rmb.Message;
@@ -21,11 +28,17 @@ import us.yamb.rmb.Response.ResponseException;
 import us.yamb.rmb.annotations.DELETE;
 import us.yamb.rmb.annotations.GET;
 import us.yamb.rmb.annotations.HEAD;
+import us.yamb.rmb.annotations.JsonParam;
 import us.yamb.rmb.annotations.POST;
 import us.yamb.rmb.annotations.PUT;
 import us.yamb.rmb.annotations.PathParam;
 import us.yamb.rmb.annotations.Produces;
 import us.yamb.rmb.annotations.QueryParam;
+import us.yamb.rmb.kpi.CounterMonitor;
+import us.yamb.rmb.kpi.TimeMonitor;
+import us.yamb.rmb.kpi.TimeMonitor.Stopwatch;
+
+import com.ericsson.research.trap.utils.StringUtil;
 
 /**
  * ReflectionListener is a wrapping class that allows objects to listen to messages at specific paths, with arbitrary method
@@ -119,18 +132,43 @@ import us.yamb.rmb.annotations.QueryParam;
 public class ReflectionListener
 {
     
-    private final Object       o;
-    private final Method       m;
-    private String             listenerPath;
-    private LinkedList<String> matcherGroups = new LinkedList<String>();
-    private String             regex;
-    private Pattern            pattern;
+    private final Object                                      o;
+    private final Method                                      m;
+    private String                                            listenerPath;
+    private LinkedList<String>                                matcherGroups    = new LinkedList<String>();
+    private String                                            regex;
+    private Pattern                                           pattern;
     @SuppressWarnings("unused")
-    private String             identifier;
-    private RMB                rmb;
+    private String                                            identifier;
+    private RMB                                               rmb;
+    
+    static Map<Class<?>, BiFunction<String, Message, Object>> providers        = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
+    
+    static ThreadLocal<Message>                               reflectedMessage = new ThreadLocal<Message>();
+    
+    private CounterMonitor                                    numRequests;
+    private CounterMonitor                                    numOKs;
+    private CounterMonitor                                    numErrors;
+    private TimeMonitor                                       servicingTime;
     
     public ReflectionListener(RMBImpl rmb, Object o, Method m, String listenerPath)
     {
+        
+        String name = o.getClass().getSimpleName();
+        if (name == null)
+            name = o.getClass().getName();
+        if (name == null)
+            name = "anonymous";
+        
+        name += "_";
+        name += m.getName();
+        
+        numRequests = MonitorFactory.counter(name + "_requests");
+        numErrors = MonitorFactory.counter(name + "_err");
+        numOKs = MonitorFactory.counter(name + "_ok");
+        servicingTime = MonitorFactory.timer(name + "_time");
+        
+        MonitorFactory.register(this, name);
         
         this.rmb = rmb;
         String[] parts;
@@ -212,11 +250,15 @@ public class ReflectionListener
         
     }
     
+    @SuppressWarnings("unchecked")
     public void receiveMessage(Message message)
     {
-        
+        numRequests.increment();
+        Stopwatch watch = servicingTime.start();
         try
         {
+            reflectedMessage.set(message);
+            
             HashMap<String, String> pathParams = null;
             
             if (this.pattern == null)
@@ -247,71 +289,77 @@ public class ReflectionListener
             }
             
             LinkedList<Object> objs = new LinkedList<Object>();
-            Class<?>[] params = this.m.getParameterTypes();
-            Annotation[][] annotations = this.m.getParameterAnnotations();
+            Parameter[] params = this.m.getParameters();
             Map<String, String> parameters = message.to().getParameters();
+            Map<String, Object> body = null;
             
             for (int i = 0; i < params.length; i++)
             {
-                Class<?> param = params[i];
-                Annotation[] anns = annotations[i];
+                Parameter param = params[i];
+                Class<?> type = param.getType();
+                
+                HashMap<Class<? extends Annotation>, Annotation> anns = AnnotationScanner.scanParameter(o.getClass(), m, param);
+                //Annotation[] anns = annotations[i];
                 
                 String pathData = null;
+                PathParam pathAnn = (PathParam) anns.get(PathParam.class);
+                QueryParam queryAnn = (QueryParam) anns.get(QueryParam.class);
+                JsonParam jsonAnn = (JsonParam) anns.get(JsonParam.class);
                 
-                for (Annotation ann : anns)
+                if (pathAnn != null)
                 {
-                    if (PathParam.class.isInstance(ann))
+                    String pathElement = pathAnn.value();
+                    pathData = pathParams.get(pathElement);
+                }
+                else if (queryAnn != null)
+                {
+                    pathData = parameters.get(queryAnn.name());
+                    if (pathData == null || pathData.trim().length() == 0)
+                        pathData = queryAnn.value();
+                }
+                else if (jsonAnn != null)
+                {
+                    try
                     {
-                        String pathElement = ((PathParam) ann).value();
-                        pathData = pathParams.get(pathElement);
+                        String path = jsonAnn.value();
+                        String[] keys = path.split("\\.");
+                        Object cData = body;
+                        
+                        if (body == null)
+                            body = message.object(Map.class);
+                        
+                        for (int k = 0; k < keys.length; k++)
+                        {
+                            cData = ((Map<String, Object>) cData).get(keys[k]);
+                        }
+                        pathData = cData.toString();
                     }
-                    else if (QueryParam.class.isInstance(ann))
+                    catch (Exception e)
                     {
-                        pathData = parameters.get(((QueryParam) ann).name());
-                        if (pathData == null || pathData.trim().length() == 0)
-                            pathData = ((QueryParam) ann).value();
+                        throw new RuntimeException("Error parsing parameter " + param + " from JSON body");
                     }
                     
                 }
                 
-                if (param.isAssignableFrom(RMB.class))
+                if (type.isAssignableFrom(RMB.class))
                 {
                     objs.add(rmb);
                 }
-                else if (param.isAssignableFrom(Message.class))
+                else if (type.isAssignableFrom(Message.class))
                 {
                     objs.add(message);
                 }
-                else if (String.class.isAssignableFrom(param))
+                else if (providers.get(type) != null)
                 {
-                    objs.add(pathData != null ? pathData : message.string());
-                }
-                else if (Integer.class.isAssignableFrom(param) || Integer.TYPE.isAssignableFrom(param))
-                {
-                    objs.add(Integer.parseInt(pathData != null ? pathData : message.string()));
-                }
-                else if (Long.class.isAssignableFrom(param) || Long.TYPE.isAssignableFrom(param))
-                {
-                    objs.add(Long.parseLong(pathData != null ? pathData : message.string()));
-                }
-                else if (Double.class.isAssignableFrom(param) || Double.TYPE.isAssignableFrom(param))
-                {
-                    objs.add(Double.parseDouble(pathData != null ? pathData : message.string()));
-                }
-                else if (Float.class.isAssignableFrom(param) || Float.TYPE.isAssignableFrom(param))
-                {
-                    objs.add(Float.parseFloat(pathData != null ? pathData : message.string()));
-                }
-                else if (byte[].class.isAssignableFrom(param))
-                {
-                    objs.add(pathData != null ? pathData.getBytes() : message.bytes());
+                    BiFunction<String, Message, Object> provider = providers.get(type);
+                    objs.add(provider.apply(pathData, message));
                 }
                 else
                 {
                     String jsonStr = pathData != null ? pathData : message.string();
                     
                     if (jsonStr != null)
-                        objs.add(JSON.fromJSON(jsonStr, param));
+                        objs.add(JSON.fromJSON(jsonStr, type));
                     else
                         objs.add(null);
                 }
@@ -322,6 +370,7 @@ public class ReflectionListener
             try
             {
                 rv = this.m.invoke(this.o, objs.toArray());
+                numOKs.increment();;
             }
             catch (Exception e)
             {
@@ -333,7 +382,7 @@ public class ReflectionListener
             {
                 Throwable e = (Throwable) rv;
                 
-                while (e instanceof InvocationTargetException)
+                while (e instanceof InvocationTargetException || e instanceof UndeclaredThrowableException)
                 {
                     
                     Throwable cause = e.getCause();
@@ -359,24 +408,53 @@ public class ReflectionListener
             {
                 resp.to(message.from());
                 resp.send(rmb);
+                numOKs.increment();
             }
             else if (rv instanceof Exception)
             {
+                numErrors.increment();
                 Exception e = (Exception) rv;
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
                 e.printStackTrace(pw);
+                e.printStackTrace();
                 Response.create().status(500).to(message).data(sw.toString()).send(rmb);
+            }
+            else if (rv instanceof AsyncResult<?>)
+            {
+                ((AsyncResult<?>) rv).setCallback((asyncResponse) -> {
+                    try
+                    {
+                        Response.ok().to(message).data(asyncResponse).method("POST").send(rmb);
+                        numOKs.increment();
+                    }
+                    catch (Exception e)
+                    {
+                        numErrors.increment();
+                        throw new RuntimeException(e);
+                    }
+                });
             }
             else if (rv != null)
             {
-                Response.ok().to(message).data(rv).method("POST").send(rmb);
+                Response.ok().to(message).status(200).data(rv).method("POST").send(rmb);
+                numOKs.increment();
+            }
+            else if (this.m.getReturnType().equals(void.class))
+            {
+                Response.ok().to(message).status(204).send(rmb);
+                numOKs.increment();
             }
             
         }
         catch (IllegalArgumentException | IOException e)
         {
+            numErrors.increment();
             e.printStackTrace();
+        }
+        finally
+        {
+            watch.stop();
         }
         
     }
@@ -398,4 +476,106 @@ public class ReflectionListener
         if (m.getAnnotation(HEAD.class) != null)
             rmb.onhead(msg -> this.receiveMessage(msg));
     }
+    
+    /**
+     * Creates a Provider BiFunction that operates on bytes
+     * 
+     * @param fun
+     *            A function capable of accepting a byte source, and returning an object.
+     * @return A producer that can be plugged into ReflectionListener to produce the given output
+     */
+    public static BiFunction<String, Message, Object> byteProvider(Function<byte[], Object> fun)
+    {
+        
+        return (string, msg) -> {
+            byte[] src = null;
+            if (string != null)
+                src = StringUtil.toUtfBytes(string);
+            else
+                src = msg.bytes();
+            
+            return fun.apply(src);
+        };
+        
+    }
+    
+    /**
+     * Creates a Provider BiFunction that operates on Strings
+     * 
+     * @param fun
+     *            A function capable of accepting a String source, and returning an object.
+     * @return A producer that can be plugged into ReflectionListener to produce the given output
+     */
+    public static BiFunction<String, Message, Object> stringProvider(Function<String, Object> fun)
+    {
+        
+        return (string, msg) -> {
+            String src = null;
+            if (string != null)
+                src = string;
+            else
+                src = msg.string();
+            
+            return fun.apply(src);
+        };
+        
+    }
+    
+    /**
+     * Adds a provider that maps deserialization of objects.
+     * 
+     * @param provider
+     *            A function that takes a String (may be null), and a {@link Message}, and returns the Object that is parsed
+     *            from the string (if present), otherwise the message.
+     * @param cls
+     *            The classes to map this provider to.
+     */
+    public static void addProvider(BiFunction<String, Message, Object> provider, Class<?>... cls)
+    {
+        for (Class<?> c : cls)
+            providers.put(c, provider);
+    }
+    
+    static
+    {
+        // Init default providers
+        addProvider(stringProvider(string -> string), String.class);
+        addProvider(stringProvider(string -> Integer.parseInt(string)), Integer.class, Integer.TYPE);
+        addProvider(stringProvider(string -> Long.parseLong(string)), Long.class, Long.TYPE);
+        addProvider(stringProvider(string -> Double.parseDouble(string)), Double.class, Double.TYPE);
+        addProvider(stringProvider(string -> Float.parseFloat(string)), Float.class, Float.TYPE);
+        addProvider(stringProvider(string -> UUID.fromString(string)), UUID.class);
+        
+        addProvider(byteProvider(bs -> bs), byte[].class);
+        
+    }
+    
+    public void register(HashMap<Class<? extends Annotation>, Annotation> anns)
+    {
+        if (anns.containsKey(GET.class))
+            rmb.onget(msg -> this.receiveMessage(msg));
+        
+        if (anns.containsKey(PUT.class))
+            rmb.onput(msg -> this.receiveMessage(msg));
+        
+        if (anns.containsKey(POST.class))
+            rmb.onpost(msg -> this.receiveMessage(msg));
+        
+        if (anns.containsKey(DELETE.class))
+            rmb.ondelete(msg -> this.receiveMessage(msg));
+        
+        if (anns.containsKey(HEAD.class))
+            rmb.onhead(msg -> this.receiveMessage(msg));
+    }
+    
+    public static BiFunction<String, Message, Object> getProvider(Class<?> cls)
+    {
+        return providers.get(cls);
+    }
+    
+    public static Message currentMessage()
+    {
+        return reflectedMessage.get();
+    }
+    
 }

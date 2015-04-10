@@ -1,6 +1,7 @@
 package us.yamb.tmb;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 
 import com.ericsson.research.trap.TrapClient;
 import com.ericsson.research.trap.TrapEndpoint;
@@ -9,12 +10,13 @@ import com.ericsson.research.trap.TrapFactory;
 import com.ericsson.research.trap.delegates.OnClose;
 import com.ericsson.research.trap.delegates.OnData;
 import com.ericsson.research.trap.delegates.OnError;
+import com.ericsson.research.trap.delegates.OnFailedSending;
 import com.ericsson.research.trap.delegates.OnOpen;
 import com.ericsson.research.trap.utils.Callback;
 import com.ericsson.research.trap.utils.UID;
 import com.ericsson.research.trap.utils.impl.SingleCallback;
 
-public class Client implements OnOpen, OnClose, OnData, OnError
+public class Client implements OnOpen, OnClose, OnData, OnError, OnFailedSending
 {
     
     public interface Handler
@@ -186,5 +188,11 @@ public class Client implements OnOpen, OnClose, OnData, OnError
         m.to = (name != null ? name : UID.randomUID());
         m.op = Message.Operation.HELLO;
         send(m);        
+    }
+
+    @Override
+    public void trapFailedSending(Collection<?> datas, TrapEndpoint endpoint, Object context)
+    {
+        throw new RuntimeException();
     }
 }

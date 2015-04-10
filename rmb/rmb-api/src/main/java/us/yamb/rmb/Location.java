@@ -1,6 +1,7 @@
 package us.yamb.rmb;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -10,83 +11,80 @@ import java.util.StringTokenizer;
 public class Location
 {
     
-    public static final int ROOT_ID = 1;
+    public static final int ROOT_ID     = 1;
     
-	/**
-	 * The path query, if any.
-	 */
-	public final String	  query;
-
-	/**
-	 * The full path.
-	 */
-	public final String	  path;
-
-	/**
-	 * An array of all the parts in the path. A part is an element of the path
-	 * as delimited by slashes. In the path
-	 * 
-	 * <pre>
-	 * /foo/bar
-	 * </pre>
-	 * 
-	 * the three parts are ["", "foo", "bar"]. Index zero always represents the
-	 * root as an empty string; relative paths will have a non-empty string at
-	 * index zero.
-	 */
-	public final String[]	parts;
-	Map<String, String>	  queryParams	= null;
-	
-	private Location(String path, String query)
-	{
-
-		this.path = processResource(path);
-		this.query = query;
-		
-		if (!"/".equals(path))
-			parts = this.path.split("/");
-		else
-			parts = new String[] { "" };
-	}
-
-	public Location(String src)
-	{
-		int idx = src.indexOf("?");
-		
-		String path;
-		String query;
-		
-
-		if (idx == -1)
-		{
-			query = null;
-			path = src;
-		}
-		else
-		{
-
-			if (idx < src.length())
-				query = src.substring(idx + 1);
-			else
-				query = "";
-			path = src.substring(0, idx);
-		}
-
-		this.path = processResource(path);
-		this.query = query;
-		
-		if (!"/".equals(path))
-			parts = this.path.split("/");
-		else
-			parts = new String[] { "" };
-
-	}
-	
-	public String getPart(int idx)
-	{
-		return parts[idx];
-	}
-	
+    /**
+     * The path query, if any.
+     */
+    public final String     query;
+    
+    /**
+     * The full path.
+     */
+    public final String     path;
+    
+    /**
+     * An array of all the parts in the path. A part is an element of the path as delimited by slashes. In the path
+     * 
+     * <pre>
+     * /foo/bar
+     * </pre>
+     * 
+     * the three parts are ["", "foo", "bar"]. Index zero always represents the root as an empty string; relative paths will
+     * have a non-empty string at index zero.
+     */
+    public final String[]   parts;
+    Map<String, String>     queryParams = null;
+    
+    private Location(String path, String query)
+    {
+        
+        this.path = processResource(path);
+        this.query = query;
+        
+        if (!"/".equals(path))
+            parts = this.path.split("/");
+        else
+            parts = new String[] { "" };
+    }
+    
+    public Location(String src)
+    {
+        int idx = src.indexOf("?");
+        
+        String path;
+        String query;
+        
+        if (idx == -1)
+        {
+            query = null;
+            path = src;
+        }
+        else
+        {
+            
+            if (idx < src.length())
+                query = src.substring(idx + 1);
+            else
+                query = "";
+            path = src.substring(0, idx);
+        }
+        
+        this.path = processResource(path);
+        this.query = query;
+        
+        if (!"/".equals(path))
+            parts = this.path.split("/");
+        else
+            parts = new String[] { "" };
+        
+    }
+    
+    public String getPart(int idx)
+    {
+        return parts[idx];
+    }
+    
     private static String processResource(String resource)
     {
         if (resource == null)
@@ -141,14 +139,52 @@ public class Location
     
     public Location withPath(String src)
     {
-    	String newPath = path + (path.endsWith("/") ? "" : "/") + src;
-    	return new Location(newPath, query);
+        String newPath = path + (path.endsWith("/") ? "" : "/") + src;
+        return new Location(newPath, query);
     }
     
-    public String toString() {
-        return path + (query != null ? "?"+query : "");
+    public Location withPart(String src, int idx)
+    {
+        String[] tmp = Arrays.copyOf(parts, Math.max(idx + 1, parts.length));
+        tmp[idx] = src;
+        return new Location(String.join("/", tmp), query);
     }
-
+    
+    public Location withQuery(String src)
+    {
+        String q = query;
+        
+        if (q != null && q.trim().length() > 0)
+            q += "&";
+        else
+            q = "";
+        
+        q += src;
+        
+        return new Location(path, q);
+    }
+    
+    public Location withParameter(String name, String value)
+    {
+        Map<String, String> params = getParameters();
+        params.put(name, value);
+        
+        StringBuilder sb = new StringBuilder();
+        
+        params.forEach((key, val) -> {
+            sb.append(key);
+            sb.append("=");
+            sb.append(val);
+            sb.append("&");
+        });
+        String str = sb.toString();
+        return new Location(path, str.substring(0, str.length()-1));
+    }
+    
+    public String toString()
+    {
+        return path + (query != null ? "?" + query : "");
+    }
     
     /**
      * Returns a map containing the Location query parameters.
@@ -169,6 +205,6 @@ public class Location
             }
             return parameters;
         }
-        return null;
+        return new HashMap<String, String>();
     }
 }

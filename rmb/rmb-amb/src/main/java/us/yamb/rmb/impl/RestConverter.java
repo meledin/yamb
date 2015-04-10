@@ -1,7 +1,10 @@
 package us.yamb.rmb.impl;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 
+import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.rmb.annotations.DELETE;
 import us.yamb.rmb.annotations.GET;
 import us.yamb.rmb.annotations.HEAD;
@@ -93,7 +96,9 @@ public class RestConverter
     public static void convert(RMBImpl rmb, Object instance, String basePath)
     {
         Class<?> c = instance.getClass();
-        Path ann = c.getAnnotation(Path.class);
+        
+        HashMap<Class<? extends Annotation>, Annotation> anns = AnnotationScanner.scanClass(c);
+        Path ann = (Path) anns.get(Path.class);
         
         String classPath = "";
         
@@ -111,10 +116,14 @@ public class RestConverter
         
         for (Method m : methods)
         {
+            
+            anns = AnnotationScanner.scanMethod(c, m);
+            
             String methodPath;
             try
             {
-                methodPath = m.getAnnotation(Path.class).value();
+                ann = (Path) anns.get(Path.class);
+                methodPath = ann.value();
             }
             catch (Exception e)
             {
@@ -131,19 +140,19 @@ public class RestConverter
             
             try
             {
-                if (m.getAnnotation(GET.class) != null)
+                if (anns.containsKey(GET.class))
                     method = "GET";
                 
-                if (m.getAnnotation(PUT.class) != null)
+                if (anns.containsKey(PUT.class))
                     method = "PUT";
                 
-                if (m.getAnnotation(POST.class) != null)
+                if (anns.containsKey(POST.class))
                     method = "POST";
                 
-                if (m.getAnnotation(DELETE.class) != null)
+                if (anns.containsKey(DELETE.class))
                     method = "DELETE";
                 
-                if (m.getAnnotation(HEAD.class) != null)
+                if (anns.containsKey(HEAD.class))
                     method = "HEAD";
             }
             catch (Exception e)
@@ -160,7 +169,7 @@ public class RestConverter
             // Generate the dispatcher path.
             // This is a constant string until the first variable element (i.e. { element)
             ReflectionListener listener = new ReflectionListener(rmb, instance, m, listenerPath);
-            listener.register();
+            listener.register(anns);
             
             /*
             String dispatcherPath = listener.getDispatcherPath().substring(1);

@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -16,17 +17,18 @@ import com.ericsson.research.trap.delegates.OnAccept;
 import com.ericsson.research.trap.delegates.OnClose;
 import com.ericsson.research.trap.delegates.OnData;
 import com.ericsson.research.trap.delegates.OnError;
+import com.ericsson.research.trap.delegates.OnFailedSending;
 import com.ericsson.research.trap.spi.nhttp.handlers.Resource;
 import com.ericsson.research.trap.utils.Callback;
 import com.ericsson.research.trap.utils.UID;
 import com.ericsson.research.trap.utils.impl.SingleCallback;
 
-public class Broker implements OnAccept, OnError
+public class Broker implements OnAccept, OnError, OnFailedSending
 {
     private static Broker                                                broker;
-    private static Resource trapjs;
-    private static Resource brokerjs;
-    private static Resource testhtml;
+    private static Resource                                              trapjs;
+    private static Resource                                              brokerjs;
+    private static Resource                                              testhtml;
     private ConcurrentLinkedQueue<Client>                                connecting = new ConcurrentLinkedQueue<Client>();
     private static final ConcurrentLinkedQueue<Client>                   nullQueue  = new ConcurrentLinkedQueue<Broker.Client>();
     private ConcurrentSkipListMap<String, ConcurrentLinkedQueue<Client>> subs       = new ConcurrentSkipListMap<String, ConcurrentLinkedQueue<Client>>();
@@ -42,7 +44,7 @@ public class Broker implements OnAccept, OnError
         trapjs = new Resource(() -> TrapJS.getFull());
         brokerjs = new Resource(() -> Broker.getFull());
         testhtml = new Resource(() -> Broker.class.getClassLoader().getResourceAsStream("test.html"));
-
+        
         broker.getServer().getHostingTransport("http").addHostedObject(trapjs, "trap-full.js");
         broker.getServer().getHostingTransport("http").addHostedObject(brokerjs, "tmb.js");
         broker.getServer().getHostingTransport("http").addHostedObject(testhtml, "test.html");
@@ -57,7 +59,7 @@ public class Broker implements OnAccept, OnError
     {
         return Broker.class.getClassLoader().getResourceAsStream("tmb.js");
     }
-
+    
     public Callback<Boolean> listen(String host, int port)
     {
         this.cb = new SingleCallback<Boolean>();
@@ -165,12 +167,14 @@ public class Broker implements OnAccept, OnError
     {
         public ConcurrentLinkedQueue<String> subs = new ConcurrentLinkedQueue<String>();
         public String                        name = UID.randomUID();
-        private TrapEndpoint ep;
+        private TrapEndpoint                 ep;
         
         public Client(TrapEndpoint endpoint)
         {
             this.ep = endpoint;
             this.ep.setDelegate(this, true);
+            this.ep.setReconnectTimeout(1000);
+            this.ep.getChannel(1).setInFlightBytes(256 * 1024);
         }
         
         public void cleanup()
@@ -203,7 +207,7 @@ public class Broker implements OnAccept, OnError
         {
             try
             {
-                ep.send(m.serialize());
+                ep.send(m.serialize(), 1, true);
             }
             catch (TrapException e)
             {
@@ -211,13 +215,16 @@ public class Broker implements OnAccept, OnError
                 trapClose(null, null);
             }
         }
-
+        
         @Override
         public void trapError(TrapEndpoint endpoint, Object context)
         {
-            
+            Message m = new Message();
+            m.op = Message.Operation.BYE;
+            m.from = this.name;
+            Broker.this.handle(m, this);
         }
-
+        
         @Override
         public void trapData(byte[] data, int channel, TrapEndpoint endpoint, Object context)
         {
@@ -236,34 +243,40 @@ public class Broker implements OnAccept, OnError
                 t.printStackTrace();
             }
         }
-
+        
         @Override
         public void trapClose(TrapEndpoint endpoint, Object context)
         {
             Message m = new Message();
             m.op = Message.Operation.BYE;
             m.from = this.name;
-            Broker.this.handle(m, this);            
+            Broker.this.handle(m, this);
         }
     }
-
+    
     @Override
     public void incomingTrapConnection(TrapEndpoint endpoint, TrapListener listener, Object context)
     {
         Client client = new Client(endpoint);
-        connecting.add(client);        
+        connecting.add(client);
     }
-
+    
     @Override
     public void trapError(TrapEndpoint endpoint, Object context)
     {
         if (cb != null)
-            cb.callback(false);        
+            cb.callback(false);
     }
-
+    
     public TrapListener getServer()
     {
         return server;
     }
 
+    @Override
+    public void trapFailedSending(Collection<?> datas, TrapEndpoint endpoint, Object context)
+    {
+        throw new RuntimeException();
+    }
+    
 }

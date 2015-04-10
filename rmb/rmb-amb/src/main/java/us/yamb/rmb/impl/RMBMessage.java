@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
@@ -133,8 +134,9 @@ public class RMBMessage<T> implements Message, JSONSerializable
     @SuppressWarnings("unchecked")
     public T data(Object data)
     {
-        
-        if (String.class.isAssignableFrom(data.getClass()))
+        if (data == null)
+            this.data = null;
+        else if (String.class.isAssignableFrom(data.getClass()))
             data((String) data);
         else if (byte[].class.isAssignableFrom(data.getClass()))
             data((byte[]) data);
@@ -178,13 +180,13 @@ public class RMBMessage<T> implements Message, JSONSerializable
         to(new Location(id));
         return (T) this;
     }
-
-	@SuppressWarnings("unchecked")
-	public T header(String name, String value)
-	{
-		headers.put(name, value);
-		return (T) this;
-	}
+    
+    @SuppressWarnings("unchecked")
+    public T header(String name, String value)
+    {
+        headers.put(name, value);
+        return (T) this;
+    }
     
     /**
      * Converts a message to a human readable representation.
@@ -193,6 +195,14 @@ public class RMBMessage<T> implements Message, JSONSerializable
     {
         StringBuffer out = new StringBuffer("[ ");
         out.append(method);
+        
+        if (status() > 0)
+        {
+            out.append("[");
+            out.append(status());
+            out.append("]");
+        }
+        
         out.append(" ");
         out.append(from);
         out.append(" -> ");
@@ -247,5 +257,11 @@ public class RMBMessage<T> implements Message, JSONSerializable
         else
             out.append("no data");
         return out.toString();
+    }
+
+    @Override
+    public Map<String, String> headers()
+    {
+        return headers;
     }
 }

@@ -82,6 +82,21 @@ public class JSON
      * @param factory
      *            A factory that can re-instantiate the object.
      */
+    public static void addTransform(Class<?> c, AbstractTransformer xform)
+    {
+        xformers.put(c, xform);
+    }
+    
+    /**
+     * Adds a JSON Transform, capable of mapping a Java class to/from JSON in a specified manner.
+     * 
+     * @param c
+     *            The class to transform
+     * @param xform
+     *            A transformer, capable of serialising the object to JSON
+     * @param factory
+     *            A factory that can re-instantiate the object.
+     */
     public static void addTransform(Class<?> c, AbstractTransformer xform, ObjectFactory factory)
     {
         xformers.put(c, xform);
@@ -200,6 +215,8 @@ public class JSON
     @SuppressWarnings("unchecked")
     public static <T> T fromJSON(String s, Class<T> c)
     {
+        if (s == null)
+            return null;
         try
         {
             return (T) deserializer().deserialize(s, c);
@@ -266,7 +283,10 @@ class FieldTransformer extends ObjectTransformer
                 // traverse object
                 TypeContext typeContext = context.writeOpenObject();
                 Collection<String> fNames = ((JSONSerializable) object).getFieldNames();
-                //this.xform("class", object.getClass(), context, typeContext);
+                path.enqueue("class");
+                if (context.isIncluded("class", object.getClass()))
+                    this.xform("class", object.getClass(), context, typeContext);
+                path.pop();
                 for (String name : fNames)
                 {
                     Field f = null;

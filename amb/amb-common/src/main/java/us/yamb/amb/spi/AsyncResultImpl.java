@@ -79,5 +79,11 @@ public class AsyncResultImpl<T> implements AsyncResult<T>, AsyncResultCallback<T
 		}
 		cb.completed(val);
 	}
+	
+	public static <T> AsyncResultImpl<T> wrap(T o) {
+	    AsyncResultImpl<T> res = new AsyncResultImpl<T>();
+	    res.completed(o);
+	    return res;
+	}
 
 }

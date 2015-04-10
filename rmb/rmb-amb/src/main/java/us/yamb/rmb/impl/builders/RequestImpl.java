@@ -1,6 +1,7 @@
 package us.yamb.rmb.impl.builders;
 
 import java.io.IOException;
+import java.util.Map;
 
 import us.yamb.amb.Send;
 import us.yamb.amb.spi.AsyncResultImpl;
@@ -220,6 +221,12 @@ class ResponseImpl implements Reply
     public int status()
     {
         return msg.status();
+    }
+
+    @Override
+    public Map<String, String> headers()
+    {
+        return msg.headers();
     }
 
 }

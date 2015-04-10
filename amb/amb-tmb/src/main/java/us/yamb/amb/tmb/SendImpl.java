@@ -3,6 +3,7 @@ package us.yamb.amb.tmb;
 import us.yamb.amb.Send;
 import us.yamb.amb.callbacks.AMBCallbackInterface;
 import us.yamb.amb.spi.ObservableBase;
+import us.yamb.mb.util.JSON;
 
 import com.ericsson.research.trap.utils.StringUtil;
 
@@ -44,7 +45,7 @@ public class SendImpl extends ObservableBase<AMBCallbackInterface, Send> impleme
 
 	public Send data(Object data)
 	{
-		// TODO Auto-generated method stub
+		data(JSON.toJSON(data));
 		return this;
 	}
 
