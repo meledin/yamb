@@ -16,5 +16,5 @@ import java.lang.annotation.Target;
 @Target({ ElementType.TYPE, ElementType.PARAMETER })
 public @interface PathParam
 {
-    public abstract String value();
+    public abstract String value() default "";
 }

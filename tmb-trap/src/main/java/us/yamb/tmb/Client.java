@@ -2,6 +2,7 @@ package us.yamb.tmb;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ericsson.research.trap.TrapClient;
 import com.ericsson.research.trap.TrapEndpoint;
@@ -124,11 +125,13 @@ public class Client implements OnOpen, OnClose, OnData, OnError, OnFailedSending
         send(m);
     }
     
+    private AtomicInteger channel = new AtomicInteger();
+    
     private void send(Message m)
     {
         try
         {
-            client.send(m.serialize());
+            client.send(m.serialize(), channel.incrementAndGet() % 32 + 1, true);
         }
         catch (TrapException e)
         {

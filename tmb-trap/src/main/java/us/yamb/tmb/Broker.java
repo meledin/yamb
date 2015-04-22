@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ericsson.research.trap.TrapEndpoint;
 import com.ericsson.research.trap.TrapException;
@@ -203,11 +204,13 @@ public class Broker implements OnAccept, OnError, OnFailedSending
             }
         }
         
+        AtomicInteger channel = new AtomicInteger();
+        
         public void send(Message m)
         {
             try
             {
-                ep.send(m.serialize(), 1, true);
+                ep.send(m.serialize(), channel.incrementAndGet() % 32 + 1, true);
             }
             catch (TrapException e)
             {

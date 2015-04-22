@@ -167,9 +167,9 @@ public class Location
     public Location withParameter(String name, String value)
     {
         Map<String, String> params = getParameters();
-        params.put(name, value);
         
         StringBuilder sb = new StringBuilder();
+        params.put(name, value);
         
         params.forEach((key, val) -> {
             sb.append(key);

@@ -21,6 +21,7 @@ import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
+import us.yamb.mb.util.YContext;
 import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Response;
@@ -135,24 +136,29 @@ public class ReflectionListener
     private final Object                                      o;
     private final Method                                      m;
     private String                                            listenerPath;
-    private LinkedList<String>                                matcherGroups    = new LinkedList<String>();
+    private LinkedList<String>                                matcherGroups = new LinkedList<String>();
     private String                                            regex;
     private Pattern                                           pattern;
     @SuppressWarnings("unused")
     private String                                            identifier;
     private RMB                                               rmb;
     
-    static Map<Class<?>, BiFunction<String, Message, Object>> providers        = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
-    
-    static ThreadLocal<Message>                               reflectedMessage = new ThreadLocal<Message>();
+    static Map<Class<?>, BiFunction<String, Message, Object>> providers     = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
     
     private CounterMonitor                                    numRequests;
     private CounterMonitor                                    numOKs;
     private CounterMonitor                                    numErrors;
     private TimeMonitor                                       servicingTime;
+    private Object                                            ctx           = null;
     
     public ReflectionListener(RMBImpl rmb, Object o, Method m, String listenerPath)
     {
+        this(rmb, o, m, listenerPath, null);
+    }
+    
+    public ReflectionListener(RMBImpl rmb, Object o, Method m, String listenerPath, Object ctx)
+    {
+        this.ctx = ctx;
         
         String name = o.getClass().getSimpleName();
         if (name == null)
@@ -257,7 +263,9 @@ public class ReflectionListener
         Stopwatch watch = servicingTime.start();
         try
         {
-            reflectedMessage.set(message);
+            YContext.push(RMB.CTX_MESSAGE, message);
+            YContext.push(RMB.CTX_RMB, rmb);
+            YContext.push(RMB.CTX_OBJECT, ctx);
             
             HashMap<String, String> pathParams = null;
             
@@ -306,14 +314,21 @@ public class ReflectionListener
                 QueryParam queryAnn = (QueryParam) anns.get(QueryParam.class);
                 JsonParam jsonAnn = (JsonParam) anns.get(JsonParam.class);
                 
+                Function<String, String> getFieldName = (value) -> {
+                    if (value.trim().length() > 0)
+                        return value;
+                    return param.getName();
+                };
+                
                 if (pathAnn != null)
                 {
-                    String pathElement = pathAnn.value();
+                    String pathElement = getFieldName.apply(pathAnn.value());
                     pathData = pathParams.get(pathElement);
                 }
                 else if (queryAnn != null)
                 {
-                    pathData = parameters.get(queryAnn.name());
+                    String queryElement = getFieldName.apply(queryAnn.name());
+                    pathData = parameters.get(queryElement);
                     if (pathData == null || pathData.trim().length() == 0)
                         pathData = queryAnn.value();
                 }
@@ -321,7 +336,7 @@ public class ReflectionListener
                 {
                     try
                     {
-                        String path = jsonAnn.value();
+                        String path = getFieldName.apply(jsonAnn.value());
                         String[] keys = path.split("\\.");
                         Object cData = body;
                         
@@ -370,7 +385,6 @@ public class ReflectionListener
             try
             {
                 rv = this.m.invoke(this.o, objs.toArray());
-                numOKs.increment();;
             }
             catch (Exception e)
             {
@@ -445,6 +459,10 @@ public class ReflectionListener
                 Response.ok().to(message).status(204).send(rmb);
                 numOKs.increment();
             }
+            else
+            {
+                numOKs.increment();
+            }
             
         }
         catch (IllegalArgumentException | IOException e)
@@ -454,6 +472,9 @@ public class ReflectionListener
         }
         finally
         {
+            YContext.pop(RMB.CTX_MESSAGE, message);
+            YContext.pop(RMB.CTX_RMB, rmb);
+            YContext.pop(RMB.CTX_OBJECT, ctx);
             watch.stop();
         }
         
@@ -545,7 +566,6 @@ public class ReflectionListener
         addProvider(stringProvider(string -> Double.parseDouble(string)), Double.class, Double.TYPE);
         addProvider(stringProvider(string -> Float.parseFloat(string)), Float.class, Float.TYPE);
         addProvider(stringProvider(string -> UUID.fromString(string)), UUID.class);
-        
         addProvider(byteProvider(bs -> bs), byte[].class);
         
     }
@@ -571,11 +591,6 @@ public class ReflectionListener
     public static BiFunction<String, Message, Object> getProvider(Class<?> cls)
     {
         return providers.get(cls);
-    }
-    
-    public static Message currentMessage()
-    {
-        return reflectedMessage.get();
     }
     
 }

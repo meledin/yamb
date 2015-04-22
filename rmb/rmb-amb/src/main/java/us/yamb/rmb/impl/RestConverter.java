@@ -76,7 +76,7 @@ public class RestConverter
      */
     public static void convert(RMBImpl target, Object instance)
     {
-        convert(target, instance, "");
+        convert(target, instance, "", null);
     }
     
     /**
@@ -93,7 +93,7 @@ public class RestConverter
      *            base, or is included by reference.
      */
     
-    public static void convert(RMBImpl rmb, Object instance, String basePath)
+    public static void convert(RMBImpl rmb, Object instance, String basePath, Object ctx)
     {
         Class<?> c = instance.getClass();
         

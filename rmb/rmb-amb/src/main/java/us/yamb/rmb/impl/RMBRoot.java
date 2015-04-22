@@ -95,7 +95,7 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
                         try
                         {
                             if (msg.status() < 100)
-                                message().to(msg.from()).status(404).send();
+                                message().to(msg.from()).status(404).data(msg.to + " not found").send();
                             else if (msg.status() >= 300)
                                 System.err.println(msg);
                         }

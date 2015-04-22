@@ -87,8 +87,10 @@
 		return found;
 	};
 	
-	var toJSONByteArray = function(s) {
+	var toJSONByteArray = function(src) {
 		var bytes = [];
+
+		var s = unescape(encodeURIComponent(src));
 
 		for (var i = 0; i < s.length; i++) {
 			var c = s.charCodeAt(i);
@@ -109,7 +111,7 @@
 		for (var i=offset; i<length; i++)
 			str += String.fromCharCode(arr[i]);
 		
-		return str;
+		return decodeURIComponent( escape( str ) );
 	};
 	
 	Trap._compat = {};
@@ -261,6 +263,12 @@
 			amb.onopen = function() { rmb._id = amb.id(); rmb._dispatchEvent({type: "open"}); };
 			amb.onmessage = function(msg) { 
 				var evt = JSON.parse(msg.string);
+				
+				if (evt.data)
+					for (var i=0; i<evt.data.length; i++)
+						if (evt.data[i] < 0)
+							evt.data[i] += 256;
+				
 				evt.type = "dispatch";
 				evt.location = new Location(evt.to);
 				evt.idx = 1;

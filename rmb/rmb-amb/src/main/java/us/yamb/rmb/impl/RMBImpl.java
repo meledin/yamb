@@ -11,8 +11,8 @@ import us.yamb.rmb.Location;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
 import us.yamb.rmb.Response;
-import us.yamb.rmb.Send;
 import us.yamb.rmb.Response.ResponseException;
+import us.yamb.rmb.Send;
 import us.yamb.rmb.builders.ChannelBuilder;
 import us.yamb.rmb.builders.PipeBuilder;
 import us.yamb.rmb.callbacks.OnDelete;
@@ -151,6 +151,12 @@ public abstract class RMBImpl implements RMB
     public void add(Object restObject)
     {
         RestConverter.convert(this, restObject);
+        this.objects.add(restObject);
+    }
+    
+    public void add(Object restObject, Object ctx)
+    {
+        RestConverter.convert(this, restObject, "", ctx);
         this.objects.add(restObject);
     }
     

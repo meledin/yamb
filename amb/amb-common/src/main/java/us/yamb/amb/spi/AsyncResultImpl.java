@@ -55,6 +55,9 @@ public class AsyncResultImpl<T> implements AsyncResult<T>, AsyncResultCallback<T
 
 				this.wait(remaining);
 			}
+			
+			if (!called)
+			    throw new InterruptedException("Time limit exceeded while waiting for result");
 
 			return this.value;
 		}

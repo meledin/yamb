@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 
 import us.yamb.mb.util.StringUtil;
 
-public class RMBMessage
+public class PackedMessage
 {
 	public enum Header
 	{
@@ -77,7 +77,7 @@ public class RMBMessage
 	 */
 	//@formatter:on
 
-	HashMap<Header, String>	headers	      = new HashMap<RMBMessage.Header, String>();
+	HashMap<Header, String>	headers	      = new HashMap<PackedMessage.Header, String>();
 	HashMap<String, String>	customHeaders	= new HashMap<String, String>();
 	byte[]	                body	      = new byte[0];
 
@@ -189,10 +189,10 @@ public class RMBMessage
 
 	}
 
-	public static RMBMessage unpack(byte[] bs) throws RMBException
+	public static PackedMessage unpack(byte[] bs) throws RMBException
 	{
 
-		RMBMessage msg = new RMBMessage();
+		PackedMessage msg = new PackedMessage();
 
 		int length = ByteBuffer.wrap(bs, 0, 4).getInt();
 

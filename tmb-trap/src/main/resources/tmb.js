@@ -27,6 +27,32 @@
 		
 		return decodeURIComponent( escape( str ) );
 	};
+	
+	goog.crypt.utf8ByteArrayToString = function(bytes, offset, length) {
+		  // TODO(user): Use native implementations if/when available
+		  var out = [], pos = offset, c = 0;
+
+			if (typeof(offset) == "undefined")
+			{
+				offset = 0; length = bytes.length;
+			}
+		  
+		  while (pos < length+offset) {
+		    var c1 = bytes[pos++];
+		    if (c1 < 128) {
+		      out[c++] = String.fromCharCode(c1);
+		    } else if (c1 > 191 && c1 < 224) {
+		      var c2 = bytes[pos++];
+		      out[c++] = String.fromCharCode((c1 & 31) << 6 | c2 & 63);
+		    } else {
+		      var c2 = bytes[pos++];
+		      var c3 = bytes[pos++];
+		      out[c++] = String.fromCharCode(
+		          (c1 & 15) << 12 | (c2 & 63) << 6 | c3 & 63);
+		    }
+		  }
+		  return out.join('');
+		};
 
 	var getBits = function(src, startBit, endBit)
 	{
