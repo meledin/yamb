@@ -23,7 +23,7 @@ public class YContext
     
     private static LinkedList<Object> _list(String key)
     {
-        return ctx.get().getOrDefault(key, new LinkedList<Object>());
+        return ctx.get().computeIfAbsent(key, (foo) -> new LinkedList<Object>());
     }
     
     /**
@@ -97,7 +97,7 @@ public class YContext
     public static <T> T pop(String key, T expectedValue)
     {
         Object object = object(key);
-        if (expectedValue.equals(object))
+        if (expectedValue != null && expectedValue.equals(object) || expectedValue == object)
         {
             _list(key).pop();
             return expectedValue;
