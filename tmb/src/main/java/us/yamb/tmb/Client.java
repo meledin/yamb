@@ -90,10 +90,15 @@ public class Client
 	{
 	}
 
-	public Client(String name)
-	{
-		this.name = name;
-	}
+    public Client(String name)
+    {
+        this.name = name;
+    }
+
+    public Client(String name, byte[] handle)
+    {
+        this.name = name;
+    }
 
     public Callback<Boolean> connect(String src) throws IllegalArgumentException, IOException
     {

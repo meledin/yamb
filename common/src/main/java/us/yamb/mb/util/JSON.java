@@ -23,6 +23,7 @@ import flexjson.JSONContext;
 import flexjson.JSONDeserializer;
 import flexjson.JSONException;
 import flexjson.JSONSerializer;
+import flexjson.JsonNumber;
 import flexjson.ObjectBinder;
 import flexjson.ObjectFactory;
 import flexjson.Path;
@@ -110,6 +111,36 @@ public class JSON
         addTransform(void.class, new ExcludeTransformer(), f);
         addTransform(UUID.class, new ToStringTransformer(), new UUIDFactory());
         addTransform(URI.class, new ToStringTransformer(), new URIFactory());
+
+        try
+        {
+            JSON.addTransform(JsonNumber.class, new AbstractTransformer() {
+                
+                private Field field;
+                {
+                    field = JsonNumber.class.getDeclaredField("input");
+                    field.setAccessible(true);
+                }
+                
+                @Override
+                public void transform(Object object)
+                {
+                    JSONContext ctx = JSONContext.get();
+                    try
+                    {
+                        ctx.write((String) field.get(object));
+                    }
+                    catch (IllegalArgumentException | IllegalAccessException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+        catch (NoSuchFieldException e)
+        {
+            e.printStackTrace();
+        }
     }
     
     /**
@@ -391,6 +422,9 @@ class FieldObjectFactory extends BeanObjectFactory
         Object target = null;
         try
         {
+            
+            if (!(map instanceof Map))
+                throw new ClassCastException();
             
             // okay, I'm just going to reflect the **** out of this bastard
             Map<?, ?> jsonOwner = (Map<?, ?>) map;

@@ -15,6 +15,7 @@ import com.ericsson.research.trap.delegates.OnFailedSending;
 import com.ericsson.research.trap.delegates.OnOpen;
 import com.ericsson.research.trap.utils.Callback;
 import com.ericsson.research.trap.utils.UID;
+import com.ericsson.research.trap.utils.UUID;
 import com.ericsson.research.trap.utils.impl.SingleCallback;
 
 public class Client implements OnOpen, OnClose, OnData, OnError, OnFailedSending
@@ -39,14 +40,24 @@ public class Client implements OnOpen, OnClose, OnData, OnError, OnFailedSending
     private String                  name = null;
     
     private TrapClient              client;
+    private byte[] handle;
     
     public Client()
     {
+        this.handle = UUID.randomUUID().getBytes();
     }
     
     public Client(String name)
     {
+        this();
         this.name = name;
+    }
+    
+    public Client(String name, byte[] handle)
+    {
+        this();
+        this.name = name;
+        this.handle = handle;
     }
     
     public Callback<Boolean> connect(String src) throws TrapException
@@ -190,6 +201,7 @@ public class Client implements OnOpen, OnClose, OnData, OnError, OnFailedSending
         Message m = new Message();
         m.to = (name != null ? name : UID.randomUID());
         m.op = Message.Operation.HELLO;
+        m.payload = handle;
         send(m);        
     }
 

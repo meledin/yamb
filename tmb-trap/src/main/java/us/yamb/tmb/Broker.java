@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -104,12 +105,23 @@ public class Broker implements OnAccept, OnError, OnFailedSending
         switch (m.op)
         {
             case Message.Operation.HELLO:
+                c.handle = m.payload;
                 if (clients.putIfAbsent(m.to, c) == null)
                 {
                     c.name = m.to;
                 }
                 else
-                    clients.put(c.name, c);
+                {
+                    Client existing = clients.get(m.to);
+                    
+                    if (Arrays.equals(existing.handle, c.handle))
+                    {
+                        clients.put(m.to, c);
+                        c.name = m.to;
+                    }
+                    else
+                        clients.put(c.name, c);
+                }
                 Message resp = new Message();
                 resp.op = Message.Operation.HELLO;
                 resp.to = c.name;
@@ -166,8 +178,9 @@ public class Broker implements OnAccept, OnError, OnFailedSending
     
     class Client implements OnClose, OnData, OnError
     {
-        public ConcurrentLinkedQueue<String> subs = new ConcurrentLinkedQueue<String>();
-        public String                        name = UID.randomUID();
+        public ConcurrentLinkedQueue<String> subs   = new ConcurrentLinkedQueue<String>();
+        public String                        name   = UID.randomUID();
+        public byte[]                        handle = null;
         private TrapEndpoint                 ep;
         
         public Client(TrapEndpoint endpoint)
@@ -275,7 +288,7 @@ public class Broker implements OnAccept, OnError, OnFailedSending
     {
         return server;
     }
-
+    
     @Override
     public void trapFailedSending(Collection<?> datas, TrapEndpoint endpoint, Object context)
     {

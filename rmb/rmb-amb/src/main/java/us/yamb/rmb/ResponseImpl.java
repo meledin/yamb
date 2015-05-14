@@ -23,6 +23,8 @@ public class ResponseImpl extends SendImpl<Response> implements Response
     {
         if (request != null)
             from(request.to());
+        else
+            from(rmb.id());
         
         this.msg = ((RMBImpl) rmb)._ambSend();
         

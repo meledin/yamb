@@ -50,4 +50,10 @@ public class AMBBuilderImpl extends AMBBuilder
 		return new AMBRabbit(host, port);
 	}
 
+    @Override
+    public AMBBuilder handle(byte[] handle)
+    {
+        return this;
+    }
+
 }

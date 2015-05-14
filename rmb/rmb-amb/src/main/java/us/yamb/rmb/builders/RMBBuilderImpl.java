@@ -21,11 +21,18 @@ public class RMBBuilderImpl extends RMBBuilder
 	    return this;
     }
 
-	@Override
+    @Override
     public RMBBuilder id(String id)
     {
-		builder.id(id);
-	    return this;
+        builder.id(id);
+        return this;
+    }
+
+    @Override
+    public RMBBuilder handle(byte[] handle)
+    {
+        builder.handle(handle);
+        return this;
     }
 
 	@Override

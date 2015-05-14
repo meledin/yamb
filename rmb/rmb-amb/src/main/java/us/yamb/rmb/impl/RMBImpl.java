@@ -294,7 +294,8 @@ public abstract class RMBImpl implements RMB
         	catch(ResponseException e) {
         		try
                 {
-	                e.response().send(this);
+	                e.response().to(msg.from()).send(this);
+	                return true;
                 }
                 catch (IOException e1)
                 {
@@ -306,10 +307,12 @@ public abstract class RMBImpl implements RMB
                 {
         		    e.printStackTrace();
 	                Response.create(msg).status(500).data(e.getMessage()).send(this);
+	                return true;
                 }
                 catch (IOException e1)
                 {
 	                e1.printStackTrace();
+	                throw new RuntimeException(e1);
                 }
         	}
             

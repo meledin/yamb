@@ -39,4 +39,6 @@ public abstract class AMBBuilder
 	{
 		return (AMBBuilder) Class.forName(AMBBuilder.class.getCanonicalName() + "Impl").newInstance();
 	}
+
+    public abstract AMBBuilder handle(byte[] handle);
 }

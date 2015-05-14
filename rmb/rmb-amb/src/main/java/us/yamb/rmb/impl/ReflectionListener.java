@@ -535,7 +535,11 @@ public class ReflectionListener
             if (string != null)
                 src = string;
             else
+            {
+                if (msg.status() > 300)
+                    Response.create().status(500).data(msg.string());
                 src = msg.string();
+            }
             
             return fun.apply(src);
         };
@@ -565,6 +569,7 @@ public class ReflectionListener
         addProvider(stringProvider(string -> Long.parseLong(string)), Long.class, Long.TYPE);
         addProvider(stringProvider(string -> Double.parseDouble(string)), Double.class, Double.TYPE);
         addProvider(stringProvider(string -> Float.parseFloat(string)), Float.class, Float.TYPE);
+        addProvider(stringProvider(string -> Boolean.parseBoolean(string)), Boolean.class, Boolean.TYPE);
         addProvider(stringProvider(string -> UUID.fromString(string)), UUID.class);
         addProvider(byteProvider(bs -> bs), byte[].class);
         

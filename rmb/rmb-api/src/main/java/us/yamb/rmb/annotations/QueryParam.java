@@ -16,6 +16,6 @@ import java.lang.annotation.Target;
 @Target({ ElementType.TYPE, ElementType.PARAMETER })
 public @interface QueryParam
 {
-    public abstract String name() default "";
+    public abstract String name();
     public abstract String value() default "";
 }

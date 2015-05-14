@@ -9,6 +9,8 @@ import us.yamb.amb.callbacks.OnChannel;
 import us.yamb.amb.callbacks.OnConnect;
 import us.yamb.amb.callbacks.OnMessage;
 import us.yamb.mb.callbacks.AsyncResult;
+import us.yamb.mb.util.YContext;
+import us.yamb.rmb.RMB;
 import us.yamb.rmb.RMBStatus;
 import us.yamb.rmb.Request;
 import us.yamb.rmb.Send;
@@ -88,6 +90,7 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
             public void run()
             {
                 RMBMessage<?> msg = RMBMessage.deserialize(message.bytes());
+                YContext.push(RMB.CTX_MESSAGE, msg);
                 try
                 {
                     if (!dispatch(msg, 1))
@@ -115,6 +118,10 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
                     catch (IOException e1)
                     {
                     }
+                }
+                finally
+                {
+                    YContext.pop(RMB.CTX_MESSAGE, msg);
                 }
             }
         });
