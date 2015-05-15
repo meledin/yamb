@@ -17,6 +17,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.mb.util.JSON;
@@ -150,6 +153,7 @@ public class ReflectionListener
     private CounterMonitor                                    numErrors;
     private TimeMonitor                                       servicingTime;
     private Object                                            ctx           = null;
+    private Logger                                            logger        = LoggerFactory.getLogger(ReflectionListener.class);
     
     public ReflectionListener(RMBImpl rmb, Object o, Method m, String listenerPath)
     {
@@ -259,6 +263,10 @@ public class ReflectionListener
     @SuppressWarnings("unchecked")
     public void receiveMessage(Message message)
     {
+        
+        if (logger.isTraceEnabled())
+            logger.trace("Received message from {} to method {}.{}", message.to(), m.getDeclaringClass().getSimpleName(), m.getName());
+        
         numRequests.increment();
         Stopwatch watch = servicingTime.start();
         try
@@ -394,6 +402,7 @@ public class ReflectionListener
             // Check the tree for a ResponseException
             if (rv instanceof Throwable)
             {
+                logger.trace("Execution yielded exception {}", rv.toString());
                 Throwable e = (Throwable) rv;
                 
                 while (e instanceof InvocationTargetException || e instanceof UndeclaredThrowableException)
@@ -420,6 +429,7 @@ public class ReflectionListener
             
             if (resp != null)
             {
+                logger.trace("Sending message due to ResponseException; status is {}", resp);
                 resp.to(message.from());
                 resp.send(rmb);
                 numOKs.increment();
@@ -436,6 +446,7 @@ public class ReflectionListener
             }
             else if (rv instanceof AsyncResult<?>)
             {
+                logger.trace("Neglecting to send a response due to AsyncResult");
                 ((AsyncResult<?>) rv).setCallback((asyncResponse) -> {
                     try
                     {
@@ -451,16 +462,19 @@ public class ReflectionListener
             }
             else if (rv != null)
             {
+                logger.trace("Sending a 200 OK with data reply");
                 Response.ok().to(message).status(200).data(rv).method("POST").send(rmb);
                 numOKs.increment();
             }
-            else if (this.m.getReturnType().equals(void.class))
+            else if (!this.m.getReturnType().equals(void.class))
             {
+                logger.trace("Sending a no-content reply");
                 Response.ok().to(message).status(204).send(rmb);
                 numOKs.increment();
             }
             else
             {
+                logger.trace("Neglecting to send a response due to null result of void");
                 numOKs.increment();
             }
             

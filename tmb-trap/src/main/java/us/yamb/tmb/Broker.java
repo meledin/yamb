@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -268,6 +270,18 @@ public class Broker implements OnAccept, OnError, OnFailedSending
             m.from = this.name;
             Broker.this.handle(m, this);
         }
+        
+        public Map<String, Object> getJsonifiable()
+        {
+            ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
+            
+            map.put("description", "Broker Client");
+            map.put("name", name);
+            map.put("status", ep.getState());
+            map.put("subs", subs.toString());
+            
+            return map;
+        }
     }
     
     @Override
@@ -293,6 +307,17 @@ public class Broker implements OnAccept, OnError, OnFailedSending
     public void trapFailedSending(Collection<?> datas, TrapEndpoint endpoint, Object context)
     {
         throw new RuntimeException();
+    }
+    
+    public Map<String, Object> getJsonifiable()
+    {
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
+        
+        clients.values().parallelStream().forEach((client) -> {
+            map.put(client.name, client.getJsonifiable());
+        });
+        
+        return map;
     }
     
 }

@@ -151,4 +151,8 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     {
         // No effect on root
     }
+    
+    public String toString() {
+        return "RMB with ID " + this.id() + " with status " + amb.status() + ". SeedInfo is [" + this.seedInfo() + "]";
+    }
 }
