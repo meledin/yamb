@@ -178,7 +178,7 @@ public class Location
             sb.append("&");
         });
         String str = sb.toString();
-        return new Location(path, str.substring(0, str.length()-1));
+        return new Location(path, str.substring(0, str.length() - 1));
     }
     
     public String toString()
@@ -193,18 +193,25 @@ public class Location
      */
     public Map<String, String> getParameters()
     {
-        if (this.query != null)
+        if (this.queryParams == null)
         {
-            Map<String, String> parameters = new HashMap<String, String>();
-            StringTokenizer st = new StringTokenizer(this.query, "&");
-            while (st.hasMoreElements())
+            if (this.query != null)
             {
-                StringTokenizer st2 = new StringTokenizer(st.nextToken(), "=");
-                if (st2.hasMoreTokens())
-                    parameters.put(st2.nextToken(), st2.hasMoreTokens() ? st2.nextToken() : "");
+                Map<String, String> parameters = new HashMap<String, String>();
+                StringTokenizer st = new StringTokenizer(this.query, "&");
+                while (st.hasMoreElements())
+                {
+                    StringTokenizer st2 = new StringTokenizer(st.nextToken(), "=");
+                    if (st2.hasMoreTokens())
+                        parameters.put(st2.nextToken(), st2.hasMoreTokens() ? st2.nextToken() : "");
+                }
+                this.queryParams = parameters;
             }
-            return parameters;
+            else
+            {
+                this.queryParams = new HashMap<String, String>();
+            }
         }
-        return new HashMap<String, String>();
+        return this.queryParams;
     }
 }

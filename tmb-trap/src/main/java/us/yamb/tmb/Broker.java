@@ -23,6 +23,7 @@ import com.ericsson.research.trap.delegates.OnData;
 import com.ericsson.research.trap.delegates.OnError;
 import com.ericsson.research.trap.delegates.OnFailedSending;
 import com.ericsson.research.trap.spi.nhttp.handlers.Resource;
+import com.ericsson.research.trap.utils.Base64;
 import com.ericsson.research.trap.utils.Callback;
 import com.ericsson.research.trap.utils.UID;
 import com.ericsson.research.trap.utils.impl.SingleCallback;
@@ -277,6 +278,7 @@ public class Broker implements OnAccept, OnError, OnFailedSending
             
             map.put("description", "Broker Client");
             map.put("name", name);
+            map.put("handle", new String(Base64.encode(handle)));
             map.put("status", ep.getState());
             map.put("subs", subs.toString());
             

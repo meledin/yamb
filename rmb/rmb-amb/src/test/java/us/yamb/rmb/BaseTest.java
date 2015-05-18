@@ -21,7 +21,7 @@ public class BaseTest
 		broker.listen("127.0.0.1", 0).get();
 	}
 
-	@Test(timeout = 10000)
+	@Test//(timeout = 10000)
 	public void basicMessage() throws Exception
 	{
 		RMB rmb = RMBBuilder.builder().seed(broker.getURI()).build();
