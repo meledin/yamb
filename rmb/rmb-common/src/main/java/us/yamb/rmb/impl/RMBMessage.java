@@ -8,10 +8,9 @@ import java.util.Map;
 
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
+import us.yamb.mb.util.StringUtil;
 import us.yamb.rmb.Location;
 import us.yamb.rmb.Message;
-
-import com.ericsson.research.trap.utils.StringUtil;
 
 public class RMBMessage<T> extends PackedMessage<T> implements Message, JSONSerializable
 {
@@ -148,7 +147,7 @@ public class RMBMessage<T> extends PackedMessage<T> implements Message, JSONSeri
     public T data(Object data)
     {
         if (data == null)
-            super.data((byte[])null);
+            super.data(new byte[0]);
         else if (String.class.isAssignableFrom(data.getClass()))
             data((String) data);
         else if (byte[].class.isAssignableFrom(data.getClass()))

@@ -95,6 +95,10 @@ public class PackedMessage<T>
 	public T data(byte[] body)
 	{
 		this.body = body;
+		
+		if (body == null)
+		    this.body = new byte[0];
+		
 		return (T) this;
 	}
 

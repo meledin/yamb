@@ -78,15 +78,14 @@ public class RMBChild extends RMBImpl
     }
     
     @Override
-    public us.yamb.amb.Send _ambSend()
-    {
-        return parent._ambSend();
-    }
-    
-    @Override
     public void remove()
     {
         parent.children.remove(name);
+    }
+    
+    public RMBRoot root()
+    {
+        return parent.root();
     }
     
 }

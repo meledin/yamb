@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-import us.yamb.amb.Send;
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.callbacks.AsyncResult.AsyncErrorCallback;
@@ -16,6 +15,7 @@ import us.yamb.rmb.Request;
 import us.yamb.rmb.Request.Reply;
 import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBMessage;
+import us.yamb.rmb.impl.RMBRootImpl;
 
 import com.ericsson.research.trap.utils.ThreadPool;
 
@@ -24,10 +24,10 @@ public class RequestImpl extends SendImpl<Request> implements Request
     
     private RMB     rmb;
     private long    timeout              = 30000;
-    private long    confirmTimeout;
+    private long    confirmTimeout       = 100;
     private boolean confirmationReceived = false;
     
-    public RequestImpl(RMBImpl rmb, Send aSend)
+    public RequestImpl(RMBImpl rmb, RMBRootImpl aSend)
     {
         super(rmb, aSend);
         this.rmb = rmb;
@@ -55,10 +55,10 @@ public class RequestImpl extends SendImpl<Request> implements Request
             {
                 ThreadPool.executeAfter(() -> {
                     if (!confirmationReceived)
-                        rv.errored("Did not receive a confirmation within " + confirmTimeout + "ms", new TimeoutException("Did not receive a confirmation within " + confirmTimeout + "ms"));
+                        rv.errored("Did not receive a confirmation within " + confirmTimeout + "ms",
+                                   new TimeoutException("Did not receive a confirmation within " + confirmTimeout + "ms"));
                 }, confirmTimeout);
             }
-            
             ThreadPool.executeAfter(() -> {
                 
                 resp.remove();
@@ -71,11 +71,11 @@ public class RequestImpl extends SendImpl<Request> implements Request
                 
             },
                                     timeout);
-            send(resp);
+            send(resp, rv);
         }
         catch (Exception e)
         {
-            rv.errored(null, e);
+            rv.errored("Error when trying to send the request", e);
         }
         return rv;
     }
@@ -104,7 +104,7 @@ public class RequestImpl extends SendImpl<Request> implements Request
     public Request confirmed(long msec)
     {
         confirmed(true);
-        this.confirmTimeout = msec;
+        confirmTimeout = msec;
         return this;
     }
     

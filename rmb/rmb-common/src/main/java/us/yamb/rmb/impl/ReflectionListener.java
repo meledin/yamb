@@ -24,6 +24,7 @@ import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
+import us.yamb.mb.util.StringUtil;
 import us.yamb.mb.util.YContext;
 import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
@@ -41,8 +42,6 @@ import us.yamb.rmb.annotations.QueryParam;
 import us.yamb.rmb.kpi.CounterMonitor;
 import us.yamb.rmb.kpi.TimeMonitor;
 import us.yamb.rmb.kpi.TimeMonitor.Stopwatch;
-
-import com.ericsson.research.trap.utils.StringUtil;
 
 /**
  * ReflectionListener is a wrapping class that allows objects to listen to messages at specific paths, with arbitrary method
@@ -434,6 +433,13 @@ public class ReflectionListener
                 resp.send(rmb);
                 numOKs.increment();
             }
+            else if (rv instanceof Response)
+            {
+                logger.trace("Sending message due to Response return value; status is {}", resp);
+                ((Response) rv).to(message.from());
+                ((Response) rv).send(rmb);
+                numOKs.increment();
+            }
             else if (rv instanceof Exception)
             {
                 numErrors.increment();
@@ -458,6 +464,9 @@ public class ReflectionListener
                         numErrors.increment();
                         throw new RuntimeException(e);
                     }
+                }, (reason, ex) -> {
+                    numErrors.increment();
+                    throw new RuntimeException(ex);
                 });
             }
             else if (rv != null)

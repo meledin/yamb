@@ -2,7 +2,7 @@ package us.yamb.rmb.builders;
 
 import us.yamb.amb.builders.AMBBuilder;
 import us.yamb.rmb.RMB;
-import us.yamb.rmb.impl.RMBRoot;
+import us.yamb.rmb.impl.RMBRootImpl;
 
 public class RMBBuilderImpl extends RMBBuilder
 {
@@ -51,7 +51,7 @@ public class RMBBuilderImpl extends RMBBuilder
 	@Override
     public RMB build()
     {
-	    return new RMBRoot(builder.build());
+	    return new RMBRootImpl(builder.build());
     }
 
 }

@@ -111,7 +111,7 @@ public class JSON
         addTransform(void.class, new ExcludeTransformer(), f);
         addTransform(UUID.class, new ToStringTransformer(), new UUIDFactory());
         addTransform(URI.class, new ToStringTransformer(), new URIFactory());
-
+        
         try
         {
             JSON.addTransform(JsonNumber.class, new AbstractTransformer() {
@@ -248,6 +248,10 @@ public class JSON
     {
         if (s == null)
             return null;
+        if (s.trim().length() == 0)
+            return null;
+        if (s.trim().length() < 2)
+            throw new IllegalArgumentException("\"" + s + "\" is not valid JSON");
         try
         {
             return (T) deserializer().deserialize(s, c);
@@ -467,7 +471,8 @@ class FieldObjectFactory extends BeanObjectFactory
                         if (types.length == 1)
                         {
                             Type paramType = types[0];
-                            setMethod.invoke(objectStack.getLast(), bind.invoke(context, value, resolveParameterizedTypes.invoke(context, paramType, targetType)));
+                            setMethod.invoke(objectStack.getLast(),
+                                             bind.invoke(context, value, resolveParameterizedTypes.invoke(context, paramType, targetType)));
                         }
                         else
                         {

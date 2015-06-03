@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 
 import us.yamb.mb.util.YContext;
 import us.yamb.rmb.Response.ResponseException;
-import us.yamb.rmb.impl.RMBChild;
+import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBRootImpl;
 import us.yamb.rmb.impl.builders.SendImpl;
 
@@ -42,12 +42,9 @@ public class ResponseImpl extends SendImpl<Response> implements Response
         else
             from(rmb.id());
         
-        if (rmb instanceof RMBChild)
-            rmb = ((RMBChild) rmb).root();
+        rmbRoot = (RMBRootImpl) ((RMBImpl) rmb).root();
         
-        this.msg = ((RMBRootImpl) rmb)._ambSend();
-        
-        super.send(null);
+        super.send(null, null);
         
     }
     

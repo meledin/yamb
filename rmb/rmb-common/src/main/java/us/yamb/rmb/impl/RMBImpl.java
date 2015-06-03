@@ -7,7 +7,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import us.yamb.mb.util.UID;
 import us.yamb.rmb.Location;
+import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
 import us.yamb.rmb.Request;
 import us.yamb.rmb.Response;
@@ -25,17 +27,8 @@ import us.yamb.rmb.callbacks.OnPost;
 import us.yamb.rmb.callbacks.OnPut;
 import us.yamb.rmb.callbacks.RMBCallbackInterface;
 
-import com.ericsson.research.trap.utils.UID;
-
 public abstract class RMBImpl implements RMB
 {
-    
-    public static void main(String[] args)
-    {
-        new RMBRoot(null).onmessage((message) -> {
-            System.out.println(message);
-        });
-    }
     
     protected String                              name;
     protected OnPipe                              onpipe;
@@ -48,13 +41,13 @@ public abstract class RMBImpl implements RMB
     protected OnHead                              onhead;
     
     protected Predicate<String>                   pathMatcher = path -> {
-        if (name == null || path == null)
-        {
-            System.err.println("Name-or-path is null: " + name + ", " + path);
-            return false;
-        }
-       return name.equals(path);
-    };
+                                                                  if (name == null || path == null)
+                                                                  {
+                                                                      System.err.println("Name-or-path is null: " + name + ", " + path);
+                                                                      return false;
+                                                                  }
+                                                                  return name.equals(path);
+                                                              };
     
     protected ConcurrentHashMap<String, RMBChild> children    = new ConcurrentHashMap<>();
     protected LinkedList<Object>                  objects     = new LinkedList<>();
@@ -223,7 +216,7 @@ public abstract class RMBImpl implements RMB
         return this;
     }
     
-    protected boolean dispatch(RMBMessage<?> msg, int idx)
+    public boolean dispatch(RMBMessage<?> msg, int idx)
     {
         if (!pathMatcher.test(msg.to().getPart(idx)))
             return false;
@@ -232,89 +225,106 @@ public abstract class RMBImpl implements RMB
         
         if (msg.to().parts.length == idx || pathMatcher.test(msg.to))
         {
-        	try
-        	{
-            // This message is to me!
-            switch (msg.method())
+            try
             {
-                case "POST":
-                case "post":
-                    if (onpost != null)
-                    {
-                        onpost.onpost(msg);
-                        return true;
-                    }
-                    break;
                 
-                case "GET":
-                case "get":
-                    if (onget != null)
-                    {
-                        onget.onget(msg);
-                        return true;
-                    }
-                    break;
-                
-                case "PUT":
-                case "put":
-                    if (onput != null)
-                    {
-                        onput.onput(msg);
-                        return true;
-                    }
-                    break;
-                
-                case "DELETE":
-                case "delete":
-                    if (ondelete != null)
-                    {
-                        ondelete.ondelete(msg);
-                        return true;
-                    }
-                    break;
-                
-                case "HEAD":
-                case "head":
-                    if (onhead != null)
-                    {
-                        onhead.onhead(msg);
-                        return true;
-                    }
-                    break;
-            }
-            
-            if (onmessage != null)
-            {
-                onmessage.onmessage(msg);
-                return true;
-            }
-            
-            return false;
-        	}
-        	catch(ResponseException e) {
-        		try
+                if (msg.confirmed())
                 {
-	                e.response().to(msg.from()).send(this);
-	                return true;
+                    
+                    try
+                    {
+                        // Send an immediate confirmation
+                        Response.create(msg).status(Message.CONFIRMED).send(this);
+                    }
+                    catch (Exception e)
+                    {
+                        
+                    }
+                }
+                
+                // This message is to me!
+                switch (msg.method())
+                {
+                    case "POST":
+                    case "post":
+                        if (onpost != null)
+                        {
+                            onpost.onpost(msg);
+                            return true;
+                        }
+                        break;
+                    
+                    case "GET":
+                    case "get":
+                        if (onget != null)
+                        {
+                            onget.onget(msg);
+                            return true;
+                        }
+                        break;
+                    
+                    case "PUT":
+                    case "put":
+                        if (onput != null)
+                        {
+                            onput.onput(msg);
+                            return true;
+                        }
+                        break;
+                    
+                    case "DELETE":
+                    case "delete":
+                        if (ondelete != null)
+                        {
+                            ondelete.ondelete(msg);
+                            return true;
+                        }
+                        break;
+                    
+                    case "HEAD":
+                    case "head":
+                        if (onhead != null)
+                        {
+                            onhead.onhead(msg);
+                            return true;
+                        }
+                        break;
+                }
+                
+                if (onmessage != null)
+                {
+                    onmessage.onmessage(msg);
+                    return true;
+                }
+                
+                return false;
+            }
+            catch (ResponseException e)
+            {
+                try
+                {
+                    e.response().to(msg.from()).send(this);
+                    return true;
                 }
                 catch (IOException e1)
                 {
-	                e1.printStackTrace();
+                    e1.printStackTrace();
                 }
-        	}
-        	catch(Exception e) {
-        		try
+            }
+            catch (Exception e)
+            {
+                try
                 {
-        		    e.printStackTrace();
-	                Response.create(msg).status(500).data(e.getMessage()).send(this);
-	                return true;
+                    e.printStackTrace();
+                    Response.create(msg).status(500).data(e.getMessage()).send(this);
+                    return true;
                 }
                 catch (IOException e1)
                 {
-	                e1.printStackTrace();
-	                throw new RuntimeException(e1);
+                    e1.printStackTrace();
+                    throw new RuntimeException(e1);
                 }
-        	}
+            }
             
         }
         
@@ -367,7 +377,7 @@ public abstract class RMBImpl implements RMB
     {
         return delete(to.toString());
     }
-
-    public abstract us.yamb.amb.Send _ambSend();
+    
+    public abstract RMBRoot root();
     
 }
