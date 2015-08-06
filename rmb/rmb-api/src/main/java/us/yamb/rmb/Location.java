@@ -68,7 +68,7 @@ public class Location
         //return new Location(str);
     }
     
-    private Location(String src)
+    public Location(String src)
     {
         int idx = src.indexOf("?");
         
