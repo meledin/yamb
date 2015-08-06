@@ -8,20 +8,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import com.ericsson.research.trap.utils.LRUCache;
+
 public class Location
 {
     
-    public static final int ROOT_ID     = 1;
+    public static final int ROOT_ID = 1;
     
     /**
      * The path query, if any.
      */
-    public final String     query;
+    public final String query;
     
     /**
      * The full path.
      */
-    public final String     path;
+    public final String path;
     
     /**
      * An array of all the parts in the path. A part is an element of the path as delimited by slashes. In the path
@@ -33,22 +35,40 @@ public class Location
      * the three parts are ["", "foo", "bar"]. Index zero always represents the root as an empty string; relative paths will
      * have a non-empty string at index zero.
      */
-    public final String[]   parts;
-    Map<String, String>     queryParams = null;
+    public final String[] parts;
+    Map<String, String>   queryParams = null;
     
     private Location(String path, String query)
     {
         
-        this.path = processResource(path);
+        this.path = processed.get(path, () -> processResource(path));
         this.query = query;
         
-        if (!"/".equals(path))
-            parts = this.path.split("/");
-        else
-            parts = new String[] { "" };
+        parts = processedParts.get(path, () -> {
+            if (!"/".equals(path))
+                return this.path.split("/");
+            else
+                return new String[] { "" };
+        });
     }
     
-    public Location(String src)
+    static final LRUCache<String, Location> locationCache = LRUCache.createCache(10000);
+    
+    public static Location parse(String str)
+    {
+        Location loc = locationCache.get(str);
+        
+        if (loc == null)
+        {
+            loc = new Location(str);
+            locationCache.put(str, loc);
+            
+        }
+        return loc;
+        //return new Location(str);
+    }
+    
+    private Location(String src)
     {
         int idx = src.indexOf("?");
         
@@ -70,13 +90,15 @@ public class Location
             path = src.substring(0, idx);
         }
         
-        this.path = processResource(path);
+        this.path = processed.get(path, () -> processResource(path));
         this.query = query;
         
-        if (!"/".equals(path))
-            parts = this.path.split("/");
-        else
-            parts = new String[] { "" };
+        parts = processedParts.get(path, () -> {
+            if (!"/".equals(path))
+                return this.path.split("/");
+            else
+                return new String[] { "" };
+        });
         
     }
     
@@ -84,6 +106,9 @@ public class Location
     {
         return parts[idx];
     }
+    
+    static final LRUCache<String, String>   processed      = LRUCache.createCache(1000);
+    static final LRUCache<String, String[]> processedParts = LRUCache.createCache(1000);
     
     private static String processResource(String resource)
     {
@@ -143,6 +168,13 @@ public class Location
         return new Location(newPath, query);
     }
     
+    /**
+     * Inserts the part <b>src</b> at the index <b>idx</b>
+     * 
+     * @param src
+     * @param idx
+     * @return
+     */
     public Location withPart(String src, int idx)
     {
         String[] tmp = Arrays.copyOf(parts, Math.max(idx + 1, parts.length));
@@ -158,7 +190,7 @@ public class Location
             q += "&";
         else
             q = "";
-        
+            
         q += src;
         
         return new Location(path, q);

@@ -31,13 +31,13 @@ public class RMBMessage<T> extends PackedMessage<T> implements Message, JSONSeri
     @Override
     public Location from()
     {
-        return new Location(from);
+        return Location.parse(from);
     }
     
     @Override
     public Location to()
     {
-        return new Location(to);
+        return Location.parse(to);
     }
     
     @Override
@@ -166,7 +166,7 @@ public class RMBMessage<T> extends PackedMessage<T> implements Message, JSONSeri
     
     protected void from(String id)
     {
-        from(new Location(id));
+        from(Location.parse(id));
     }
     
     protected void from(Location path)
@@ -189,7 +189,7 @@ public class RMBMessage<T> extends PackedMessage<T> implements Message, JSONSeri
     @SuppressWarnings("unchecked")
     public T to(String id)
     {
-        to(new Location(id));
+        to(Location.parse(id));
         return (T) this;
     }
     

@@ -4,16 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import us.yamb.amb.spi.AsyncResultImpl;
-import us.yamb.mb.callbacks.AsyncResult;
-import us.yamb.rmb.RMBStatus;
-import us.yamb.rmb.Request;
-import us.yamb.rmb.Request.Reply;
-import us.yamb.rmb.Send;
-import us.yamb.rmb.impl.builders.RequestImpl;
-import us.yamb.rmb.impl.builders.SendBuilder;
-import us.yamb.rmb.impl.builders.SendImpl;
-
 import com.ericsson.research.trap.TrapEndpoint;
 import com.ericsson.research.trap.TrapException;
 import com.ericsson.research.trap.TrapFactory;
@@ -24,6 +14,16 @@ import com.ericsson.research.trap.delegates.OnData;
 import com.ericsson.research.trap.delegates.OnError;
 import com.ericsson.research.trap.utils.Configuration;
 import com.ericsson.research.trap.utils.UUID;
+
+import us.yamb.amb.spi.AsyncResultImpl;
+import us.yamb.mb.callbacks.AsyncResult;
+import us.yamb.rmb.RMBStatus;
+import us.yamb.rmb.Request;
+import us.yamb.rmb.Request.Reply;
+import us.yamb.rmb.Send;
+import us.yamb.rmb.impl.builders.RequestImpl;
+import us.yamb.rmb.impl.builders.SendBuilder;
+import us.yamb.rmb.impl.builders.SendImpl;
 
 public class ServerRMBRoot extends RMBRootImpl implements OnData, OnClose, OnError, OnAccept
 {
@@ -129,7 +129,7 @@ public class ServerRMBRoot extends RMBRootImpl implements OnData, OnClose, OnErr
         
         if (client == null)
             return;
-        client.send(obj, ch, true);
+        client.send(obj, ch, false);
     }
     
     @Override

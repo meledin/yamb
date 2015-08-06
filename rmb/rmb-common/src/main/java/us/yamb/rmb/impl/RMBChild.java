@@ -80,7 +80,7 @@ public class RMBChild extends RMBImpl
     @Override
     public void remove()
     {
-        parent.children.remove(name);
+        parent.remove(name);
     }
     
     public RMBRoot root()

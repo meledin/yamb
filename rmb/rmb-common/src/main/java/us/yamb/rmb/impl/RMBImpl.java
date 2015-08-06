@@ -30,27 +30,28 @@ import us.yamb.rmb.callbacks.RMBCallbackInterface;
 public abstract class RMBImpl implements RMB
 {
     
-    protected String                              name;
-    protected OnPipe                              onpipe;
-    protected OnPost                              onpost;
-    protected OnDelete                            ondelete;
-    protected OnGet                               onget;
-    protected OnPut                               onput;
-    protected OnDisconnect                        ondisconnect;
-    protected OnMessage                           onmessage;
-    protected OnHead                              onhead;
+    protected String       name;
+    protected OnPipe       onpipe;
+    protected OnPost       onpost;
+    protected OnDelete     ondelete;
+    protected OnGet        onget;
+    protected OnPut        onput;
+    protected OnDisconnect ondisconnect;
+    protected OnMessage    onmessage;
+    protected OnHead       onhead;
     
-    protected Predicate<String>                   pathMatcher = path -> {
-                                                                  if (name == null || path == null)
-                                                                  {
-                                                                      System.err.println("Name-or-path is null: " + name + ", " + path);
-                                                                      return false;
-                                                                  }
-                                                                  return name.equals(path);
-                                                              };
+    protected Predicate<String> pathMatcher = path -> {
+        if (name == null || path == null)
+        {
+            System.err.println("Name-or-path is null: " + name + ", " + path);
+            return false;
+        }
+        return name.equals(path);
+    };
     
-    protected ConcurrentHashMap<String, RMBChild> children    = new ConcurrentHashMap<>();
-    protected LinkedList<Object>                  objects     = new LinkedList<>();
+    protected ConcurrentHashMap<String, RMBChild> children      = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<String, RMBChild> regexChildren = new ConcurrentHashMap<>();
+    protected LinkedList<Object>                  objects       = new LinkedList<>();
     
     public ChannelBuilder channel()
     {
@@ -122,7 +123,7 @@ public abstract class RMBImpl implements RMB
         
         if (id.startsWith("/"))
             id = id.substring(1);
-        
+            
         String[] parts = id.split("/");
         
         if (parts.length >= 2 && !regexp)
@@ -133,11 +134,13 @@ public abstract class RMBImpl implements RMB
         
         if (children.get(id) != null)
             return children.get(id);
-        
+            
         RMBChild child = new RMBChild(this, id, regexp);
         
         children.put(id, child);
-        
+        if (regexp || "**".equals(id))
+            regexChildren.put(id, child);
+            
         return child;
     }
     
@@ -220,7 +223,7 @@ public abstract class RMBImpl implements RMB
     {
         if (!pathMatcher.test(msg.to().getPart(idx)))
             return false;
-        
+            
         idx++;
         
         if (msg.to().parts.length == idx || pathMatcher.test(msg.to))
@@ -238,7 +241,7 @@ public abstract class RMBImpl implements RMB
                     }
                     catch (Exception e)
                     {
-                        
+                    
                     }
                 }
                 
@@ -253,7 +256,7 @@ public abstract class RMBImpl implements RMB
                             return true;
                         }
                         break;
-                    
+                        
                     case "GET":
                     case "get":
                         if (onget != null)
@@ -262,7 +265,7 @@ public abstract class RMBImpl implements RMB
                             return true;
                         }
                         break;
-                    
+                        
                     case "PUT":
                     case "put":
                         if (onput != null)
@@ -271,7 +274,7 @@ public abstract class RMBImpl implements RMB
                             return true;
                         }
                         break;
-                    
+                        
                     case "DELETE":
                     case "delete":
                         if (ondelete != null)
@@ -280,7 +283,7 @@ public abstract class RMBImpl implements RMB
                             return true;
                         }
                         break;
-                    
+                        
                     case "HEAD":
                     case "head":
                         if (onhead != null)
@@ -328,8 +331,13 @@ public abstract class RMBImpl implements RMB
             
         }
         
+        // Check for a direct match
+        RMBChild c2 = children.get(msg.to().getPart(idx));
+        if (c2 != null && c2.dispatch(msg, idx))
+            return true;
+            
         // This message is for a child!
-        for (RMBChild child : children.values())
+        for (RMBChild child : regexChildren.values())
         {
             if (child.dispatch(msg, idx))
                 return true;
@@ -379,5 +387,12 @@ public abstract class RMBImpl implements RMB
     }
     
     public abstract RMBRoot root();
+    
+    protected void remove(String child)
+    {
+        RMBChild removed = children.remove(child);
+        if (removed != null)
+            regexChildren.remove(child);
+    }
     
 }

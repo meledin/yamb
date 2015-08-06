@@ -2,6 +2,11 @@ package us.yamb.rmb.impl;
 
 import java.io.IOException;
 
+import com.ericsson.research.trap.TrapEndpoint;
+import com.ericsson.research.trap.TrapException;
+import com.ericsson.research.trap.delegates.OnData;
+import com.ericsson.research.trap.utils.Configuration;
+
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.mb.util.YContext;
 import us.yamb.rmb.RMB;
@@ -12,15 +17,10 @@ import us.yamb.rmb.impl.builders.RequestImpl;
 import us.yamb.rmb.impl.builders.SendBuilder;
 import us.yamb.rmb.impl.builders.SendImpl;
 
-import com.ericsson.research.trap.TrapEndpoint;
-import com.ericsson.research.trap.TrapException;
-import com.ericsson.research.trap.delegates.OnData;
-import com.ericsson.research.trap.utils.Configuration;
-
 public abstract class RMBRootImpl extends RMBRoot implements OnData
 {
-    public static final String       TRAPCFG = "TRAPCFG";
-    public static final String       ID      = "ID";
+    public static final String TRAPCFG = "TRAPCFG";
+    public static final String ID      = "ID";
     public final Configuration options;
     
     public RMBRootImpl(Configuration options)

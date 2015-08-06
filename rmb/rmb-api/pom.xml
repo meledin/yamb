@@ -18,6 +18,10 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.ericsson.research.trap</groupId>
+			<artifactId>trap-utils-15</artifactId>
+		</dependency>
 	</dependencies>
 
 	<repositories>

@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import com.ericsson.research.trap.utils.Future;
+import com.ericsson.research.trap.utils.ThreadPool;
+
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.callbacks.AsyncResult.AsyncErrorCallback;
@@ -17,9 +20,7 @@ import us.yamb.rmb.impl.RMBImpl;
 import us.yamb.rmb.impl.RMBMessage;
 import us.yamb.rmb.impl.RMBRootImpl;
 
-import com.ericsson.research.trap.utils.ThreadPool;
-
-public class RequestImpl extends SendImpl<Request> implements Request
+public class RequestImpl extends SendImpl<Request>implements Request
 {
     
     private RMB     rmb;
@@ -40,6 +41,17 @@ public class RequestImpl extends SendImpl<Request> implements Request
         try
         {
             RMB resp = rmb.create();
+            Future future = ThreadPool.executeAfter(() -> {
+                
+                resp.remove();
+                
+                if (rv.isDone())
+                    return;
+                    
+                // What to do if we weren't called?
+                rv.completed(new ResponseImpl(new InterruptedException("Timeout exceeded without response")));
+                
+            } , timeout);
             resp.onmessage(msg -> {
                 
                 if (msg.status() == Message.CONFIRMED)
@@ -49,6 +61,8 @@ public class RequestImpl extends SendImpl<Request> implements Request
                 }
                 
                 rv.completed(new ResponseImpl(msg));
+                future.cancel();
+                resp.remove();
             });
             
             if (confirmed())
@@ -57,20 +71,9 @@ public class RequestImpl extends SendImpl<Request> implements Request
                     if (!confirmationReceived)
                         rv.errored("Did not receive a confirmation within " + confirmTimeout + "ms",
                                    new TimeoutException("Did not receive a confirmation within " + confirmTimeout + "ms"));
-                }, confirmTimeout);
+                } , confirmTimeout);
             }
-            ThreadPool.executeAfter(() -> {
-                
-                resp.remove();
-                
-                if (rv.isDone())
-                    return;
-                
-                // What to do if we weren't called?
-                rv.completed(new ResponseImpl(new InterruptedException("Timeout exceeded without response")));
-                
-            },
-                                    timeout);
+            
             send(resp, rv);
         }
         catch (Exception e)

@@ -10,7 +10,7 @@ public class PathTest
 	@Test
 	public void testEmpty() throws Exception
 	{
-		Location path = new Location("");
+		Location path = Location.parse("");
 	}
 	
 }

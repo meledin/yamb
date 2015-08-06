@@ -11,6 +11,7 @@ public interface AsyncResult<T>
      * @param <T>
      *            The type of object being provided by the callback
      */
+    @FunctionalInterface
     public interface AsyncResultCallback<T>
     {
         /**
