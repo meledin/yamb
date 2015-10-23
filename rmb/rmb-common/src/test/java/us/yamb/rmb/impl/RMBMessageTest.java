@@ -1,5 +1,6 @@
 package us.yamb.rmb.impl;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -20,5 +21,10 @@ public class RMBMessageTest
 		PackedMessage unpack = PackedMessage.unpack(msg.pack(), new PackedMessage());
 		System.out.println(unpack.toString());
 		System.err.println(unpack.toString().length());
+		
+		msg = new PackedMessage();
+		msg._header(Header.To, "/foo/bar");
+		msg._header(Header.Method, "GET");
+		System.out.println(Arrays.toString(msg.pack()));
 	}
 }

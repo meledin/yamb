@@ -12,7 +12,9 @@ import com.ericsson.research.trap.delegates.OnAccept;
 import com.ericsson.research.trap.delegates.OnClose;
 import com.ericsson.research.trap.delegates.OnData;
 import com.ericsson.research.trap.delegates.OnError;
+import com.ericsson.research.trap.impl.NullDelegate;
 import com.ericsson.research.trap.utils.Configuration;
+import com.ericsson.research.trap.utils.ThreadPool;
 import com.ericsson.research.trap.utils.UUID;
 
 import us.yamb.amb.spi.AsyncResultImpl;
@@ -28,9 +30,9 @@ import us.yamb.rmb.impl.builders.SendImpl;
 public class ServerRMBRoot extends RMBRootImpl implements OnData, OnClose, OnError, OnAccept
 {
     
-    TrapListener                       listener = null;
-    TrapEndpoint                       ep       = null;
-    Map<String, TrapEndpoint>          clients  = new HashMap<>();
+    TrapListener              listener = null;
+    TrapEndpoint              ep       = null;
+    Map<String, TrapEndpoint> clients  = new HashMap<>();
     
     private AsyncResultImpl<Exception> connectionResult;
     
@@ -108,13 +110,28 @@ public class ServerRMBRoot extends RMBRootImpl implements OnData, OnClose, OnErr
     @Override
     public void trapError(TrapEndpoint endpoint, Object context)
     {
-        clients.remove(context);
+        
+        // It is possible that the endpoint that died is our listener.
+        if (endpoint == ep)
+        {
+            // Oops?? It seems we have a problem.
+            ep.setDelegate(new NullDelegate(), true);
+            ep.close();
+            ep = null;
+            
+            // Add a thread break and run.
+            ThreadPool.executeAfter(this::connect, 0);
+        }
+        else if (context != null)
+        {
+            clients.remove(context);
+        }
     }
     
     @Override
     public void trapClose(TrapEndpoint endpoint, Object context)
     {
-        clients.remove(context);
+        trapError(endpoint, context);
     }
     
     AtomicInteger channel = new AtomicInteger();
@@ -171,7 +188,7 @@ public class ServerRMBRoot extends RMBRootImpl implements OnData, OnClose, OnErr
                 }
                 
                 break;
-            
+                
             default:
         }
     }
