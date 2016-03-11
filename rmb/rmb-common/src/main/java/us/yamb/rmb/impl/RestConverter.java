@@ -3,8 +3,12 @@ package us.yamb.rmb.impl;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import us.yamb.mb.util.AnnotationScanner;
+import us.yamb.rmb.Message;
 import us.yamb.rmb.annotations.DELETE;
 import us.yamb.rmb.annotations.GET;
 import us.yamb.rmb.annotations.HEAD;
@@ -76,7 +80,7 @@ public class RestConverter
      */
     public static void convert(RMBImpl target, Object instance)
     {
-        convert(target, instance, "", null);
+        convert(target, instance, "", null, null, null);
     }
     
     /**
@@ -93,7 +97,7 @@ public class RestConverter
      *            base, or is included by reference.
      */
     
-    public static void convert(RMBImpl rmb, Object instance, String basePath, Object ctx)
+    public static void convert(RMBImpl rmb, Object instance, String basePath, Object ctx, List<Consumer<Message>> preprocessors, List<BiConsumer<Message, Object>> postprocessors)
     {
         Class<?> c = instance.getClass();
         
@@ -171,31 +175,11 @@ public class RestConverter
             ReflectionListener listener = new ReflectionListener(rmb, instance, m, listenerPath, ctx);
             listener.register(anns);
             
-            /*
-            String dispatcherPath = listener.getDispatcherPath().substring(1);
+            if (preprocessors != null)
+                preprocessors.forEach(listener::addPreprocessor);
             
-            RMB resource = dispatcherPath.trim().length() > 0 ? rmb.create(dispatcherPath) : rmb;
-            
-            try
-            {
-                if (m.getAnnotation(GET.class) != null)
-                    resource.onget(msg -> listener.receiveMessage(msg));
-                
-                if (m.getAnnotation(PUT.class) != null)
-                    resource.onput(msg -> listener.receiveMessage(msg));
-                
-                if (m.getAnnotation(POST.class) != null)
-                    resource.onpost(msg -> listener.receiveMessage(msg));
-                
-                if (m.getAnnotation(DELETE.class) != null)
-                    resource.ondelete(msg -> listener.receiveMessage(msg));
-                
-                if (m.getAnnotation(HEAD.class) != null)
-                    resource.onhead(msg -> listener.receiveMessage(msg));
-            }
-            catch (Exception e)
-            {
-            }*/
+            if (postprocessors != null)
+                postprocessors.forEach(listener::addPostprocessor);
             
         }
     }

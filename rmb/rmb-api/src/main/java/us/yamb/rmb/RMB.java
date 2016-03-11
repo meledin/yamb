@@ -1,5 +1,9 @@
 package us.yamb.rmb;
 
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
 import us.yamb.mb.MBMethods;
 import us.yamb.mb.Observable;
 import us.yamb.mb.util.YContext;
@@ -26,7 +30,7 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
     public static final String CTX_MESSAGE = "rmb_ctx_message";
     public static final String CTX_RMB     = "rmb_ctx_instance";
     public static final String CTX_OBJECT  = "rmb_ctx_object";
-    
+                                           
     /**
      * Create a new instance as a subresource of the current resource. The new instance will have a random ID. A sample returned
      * URI might be (assuming this RMB instance is /foo)
@@ -81,6 +85,19 @@ public interface RMB extends MBMethods<RMBStatus, ChannelBuilder, Send>, Observa
      *            An object to be added to {@link YContext} with the key
      */
     public void add(Object restObject, Object ctx);
+    
+    /**
+     * Instruments an object as a REST object, reading the applicable annotations and providing the appropriate callbacks.
+     * 
+     * @param restObject
+     *            The object to instrument.
+     * @param ctx
+     *            An object to be added to {@link YContext} with the key
+     * @param preprocessors
+     *            A list of consumers that may preprocess (and even modify) the incoming message, before the full RMB parsing
+     *            begins.
+     */
+    public void add(Object restObject, Object ctx, List<Consumer<Message>> preprocessors, List<BiConsumer<Message, Object>> postprocessors);
     
     /**
      * Creates a new Request object, which sends a message and expects a single reply.

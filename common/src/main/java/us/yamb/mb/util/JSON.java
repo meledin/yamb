@@ -1,5 +1,6 @@
 package us.yamb.mb.util;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -215,8 +216,17 @@ public class JSON
     public static void toJSON(Object o, OutputStream stream)
     {
         JSONSerializer s = serializer();
-        
-        s.deepSerialize(o, new OutputStreamWriter(stream));
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(stream);
+        s.deepSerialize(o, outputStreamWriter);
+        try
+        {
+            outputStreamWriter.flush();
+            outputStreamWriter.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
     
     /**

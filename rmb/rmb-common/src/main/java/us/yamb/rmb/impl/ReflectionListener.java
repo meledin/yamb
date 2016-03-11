@@ -8,11 +8,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -138,22 +141,25 @@ public class ReflectionListener
     private final Object                                      o;
     private final Method                                      m;
     private String                                            listenerPath;
-    private LinkedList<String>                                matcherGroups = new LinkedList<String>();
+    private LinkedList<String>                                matcherGroups  = new LinkedList<String>();
     private String                                            regex;
     private Pattern                                           pattern;
     @SuppressWarnings("unused")
     private String                                            identifier;
     private RMB                                               rmb;
-    
-    static Map<Class<?>, BiFunction<String, Message, Object>> providers     = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
-    
+                                                              
+    static Map<Class<?>, BiFunction<String, Message, Object>> providers      = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
+                                                                             
     private CounterMonitor                                    numRequests;
     private CounterMonitor                                    numOKs;
     private CounterMonitor                                    numErrors;
     private TimeMonitor                                       servicingTime;
-    private Object                                            ctx           = null;
-    private Logger                                            logger        = LoggerFactory.getLogger(ReflectionListener.class);
-    
+    private Object                                            ctx            = null;
+    private Logger                                            logger         = LoggerFactory.getLogger(ReflectionListener.class);
+                                                                             
+    private ArrayList<Consumer<Message>>                      preprocessors  = new ArrayList<>();
+    private ArrayList<BiConsumer<Message, Object>>            postprocessors = new ArrayList<>();
+                                                                             
     public ReflectionListener(RMBImpl rmb, Object o, Method m, String listenerPath)
     {
         this(rmb, o, m, listenerPath, null);
@@ -168,7 +174,7 @@ public class ReflectionListener
             name = o.getClass().getName();
         if (name == null)
             name = "anonymous";
-        
+            
         name += "_";
         name += m.getName();
         
@@ -252,7 +258,7 @@ public class ReflectionListener
     {
         if (!(object instanceof ReflectionListener))
             return false;
-        
+            
         ReflectionListener other = (ReflectionListener) object;
         
         return (this.o.equals(other.o) && this.m.equals(other.m));
@@ -265,7 +271,7 @@ public class ReflectionListener
         
         if (logger.isTraceEnabled())
             logger.trace("Received message from {} to method {}.{}", message.to(), m.getDeclaringClass().getSimpleName(), m.getName());
-        
+            
         numRequests.increment();
         Stopwatch watch = servicingTime.start();
         try
@@ -290,7 +296,7 @@ public class ReflectionListener
                 
                 if (!matcher.matches())
                     return;
-                
+                    
                 pathParams = new HashMap<String, String>();
                 
                 int groupId = 1;
@@ -302,6 +308,8 @@ public class ReflectionListener
                 }
                 
             }
+            
+            this.preprocessors.forEach(fun -> fun.accept(message));
             
             LinkedList<Object> objs = new LinkedList<Object>();
             Parameter[] params = this.m.getParameters();
@@ -349,7 +357,7 @@ public class ReflectionListener
                         
                         if (body == null)
                             body = message.object(Map.class);
-                        
+                            
                         for (int k = 0; k < keys.length; k++)
                         {
                             cData = ((Map<String, Object>) cData).get(keys[k]);
@@ -411,19 +419,24 @@ public class ReflectionListener
                     
                     if (cause == null)
                         cause = ((InvocationTargetException) e).getTargetException();
-                    
+                        
                     if (cause == null)
                         break;
-                    
+                        
                     e = cause;
                 }
                 
                 while (!(e instanceof ResponseException) && e.getCause() != null && e.getCause() != e.getCause())
                     e = e.getCause();
-                
+                    
                 if (e instanceof ResponseException)
                     resp = ((ResponseException) e).response();
-                
+                    
+            }
+            
+            {
+                Object rvCtx = resp != null ? resp : rv;
+                postprocessors.forEach(proc -> proc.accept(message, rvCtx));
             }
             
             if (resp != null)
@@ -464,7 +477,7 @@ public class ReflectionListener
                         numErrors.increment();
                         throw new RuntimeException(e);
                     }
-                }, (reason, ex) -> {
+                } , (reason, ex) -> {
                     numErrors.increment();
                     throw new RuntimeException(ex);
                 });
@@ -507,16 +520,16 @@ public class ReflectionListener
     {
         if (m.getAnnotation(GET.class) != null)
             rmb.onget(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(PUT.class) != null)
             rmb.onput(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(POST.class) != null)
             rmb.onpost(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(DELETE.class) != null)
             rmb.ondelete(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(HEAD.class) != null)
             rmb.onhead(msg -> this.receiveMessage(msg));
     }
@@ -537,7 +550,7 @@ public class ReflectionListener
                 src = StringUtil.toUtfBytes(string);
             else
                 src = msg.bytes();
-            
+                
             return fun.apply(src);
         };
         
@@ -602,16 +615,16 @@ public class ReflectionListener
     {
         if (anns.containsKey(GET.class))
             rmb.onget(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(PUT.class))
             rmb.onput(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(POST.class))
             rmb.onpost(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(DELETE.class))
             rmb.ondelete(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(HEAD.class))
             rmb.onhead(msg -> this.receiveMessage(msg));
     }
@@ -619,6 +632,16 @@ public class ReflectionListener
     public static BiFunction<String, Message, Object> getProvider(Class<?> cls)
     {
         return providers.get(cls);
+    }
+    
+    public void addPreprocessor(Consumer<Message> processor)
+    {
+        this.preprocessors.add(processor);
+    }
+    
+    public void addPostprocessor(BiConsumer<Message, Object> processor)
+    {
+        this.postprocessors.add(processor);
     }
     
 }

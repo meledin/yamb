@@ -42,9 +42,17 @@ public interface Request extends RestMessageBuilder<Request>
     Request timeout(long msec);
     
     /**
-     * Sets the confirmation timeout. Also sets confirmed to true. The request will have an ErrorCallback called if the message isn't confirmed within the given duration.
+     * Sets the confirmation timeout. Also sets confirmed to true. The request will have an ErrorCallback called if the message
+     * isn't confirmed within the given duration.
+     * 
      * @param msec
      * @return
      */
     Request confirmed(long msec);
+    
+    public Location from();
+    
+    public Location to();
+    
+    public String method();
 }

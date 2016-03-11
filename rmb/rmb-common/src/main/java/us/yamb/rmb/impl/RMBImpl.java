@@ -3,7 +3,10 @@ package us.yamb.rmb.impl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -152,7 +155,13 @@ public abstract class RMBImpl implements RMB
     
     public void add(Object restObject, Object ctx)
     {
-        RestConverter.convert(this, restObject, "", ctx);
+        RestConverter.convert(this, restObject, "", ctx, null, null);
+        this.objects.add(restObject);
+    }
+    
+    public void add(Object restObject, Object ctx, List<Consumer<Message>> preprocessors, List<BiConsumer<Message, Object>> postprocessors)
+    {
+        RestConverter.convert(this, restObject, "", ctx, preprocessors, postprocessors);
         this.objects.add(restObject);
     }
     
