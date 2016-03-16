@@ -159,6 +159,10 @@ public class PackedMessage<T>
 		for (Entry<Header, String> e : this.headers.entrySet())
 		{
 			preamble.putShort((short) e.getKey().getId());
+			
+			if (e.getValue() == null)
+			    continue;
+			
 			byte[] val = StringUtil.toUtfBytes(e.getValue());
 			preamble.putShort((short) val.length);
 			hvStream.write(val);

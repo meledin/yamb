@@ -56,6 +56,9 @@ public class Location
     
     public static Location parse(String str)
     {
+        if (str == null)
+            return new Location("");
+        
         Location loc = locationCache.get(str);
         
         if (loc == null)
