@@ -11,6 +11,7 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -23,6 +24,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import flexjson.JSONDeserializer;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.mb.util.JSON;
@@ -244,6 +246,8 @@ public class ReflectionListener
             }
         }
         
+        createListenerParsers();
+        
         /*
          * For the reflection listener, we'll create a new identifier, a composite of object and method.
          * This composite will replace the hashCode of our ReflectionListener, making it apparently-identical
@@ -251,6 +255,123 @@ public class ReflectionListener
          */
         this.identifier = "ReflectionListener { " + o.getClass().getName() + " [" + o.hashCode() + "]" + " - " + m.toGenericString() + " }";
         
+    }
+    
+    static class RequestContext
+    {
+        Message                 msg;
+        HashMap<String, String> pathParams = new HashMap<>();
+        Map<String, String>     parameters;
+        Map<String, Object>     jsonBody;
+    }
+    
+    private final List<Function<RequestContext, Object>> paramTranslators = new LinkedList<>();
+    private Parameter[] params;
+    
+    @SuppressWarnings("unchecked")
+    private void createListenerParsers()
+    {
+        params = this.m.getParameters();
+        
+        for (int i = 0; i < params.length; i++)
+        {
+            Parameter param = params[i];
+            Class<?> type = param.getType();
+            
+            if (type.isAssignableFrom(RMB.class))
+            {
+                paramTranslators.add(ctx -> rmb);
+                continue;
+            }
+            else if (type.isAssignableFrom(Message.class))
+            {
+                paramTranslators.add(ctx -> ctx.msg);
+                continue;
+            }
+            
+            HashMap<Class<? extends Annotation>, Annotation> anns = AnnotationScanner.scanParameter(o.getClass(), m, param);
+            
+            PathParam pathAnn = (PathParam) anns.get(PathParam.class);
+            QueryParam queryAnn = (QueryParam) anns.get(QueryParam.class);
+            JsonParam jsonAnn = (JsonParam) anns.get(JsonParam.class);
+            
+            Function<RequestContext, String> pathDataGenerator;
+            
+            Function<String, String> getFieldName = (value) -> {
+                if (value.trim().length() > 0)
+                    return value;
+                return param.getName();
+            };
+            
+            if (pathAnn != null)
+            {
+                String pathElement = getFieldName.apply(pathAnn.value());
+                pathDataGenerator = ctx -> ctx.pathParams.get(pathElement);
+            }
+            else if (queryAnn != null)
+            {
+                String queryElement = getFieldName.apply(queryAnn.name());
+                pathDataGenerator = ctx -> {
+                    String pData = ctx.parameters.get(queryElement);
+                    if (pData == null || pData.trim().length() == 0)
+                        pData = queryAnn.value();
+                    return pData;
+                };
+            }
+            else if (jsonAnn != null)
+            {
+                pathDataGenerator = ctx -> {
+                    try
+                    {
+                        String path = getFieldName.apply(jsonAnn.value());
+                        String[] keys = path.split("\\.");
+                        
+                        if (ctx.jsonBody == null)
+                            ctx.jsonBody = ctx.msg.object(Map.class);
+                            
+                        Object cData = ctx.jsonBody;
+                        
+                        for (int k = 0; k < keys.length; k++)
+                        {
+                            cData = ((Map<String, Object>) cData).get(keys[k]);
+                        }
+                        
+                        return cData.toString();
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RuntimeException("Error parsing parameter " + param + " from JSON body");
+                    }
+                };
+                
+            }
+            else
+            {
+                pathDataGenerator = ctx -> null;
+            }
+            
+            if (providers.get(type) != null)
+            {
+                BiFunction<String, Message, Object> provider = providers.get(type);
+                paramTranslators.add(ctx -> provider.apply(pathDataGenerator.apply(ctx), ctx.msg));
+            }
+            else
+            {
+                JSONDeserializer<Object> deserializer = JSON.deserializer();
+                paramTranslators.add(ctx -> {
+                    
+                    String pathData = pathDataGenerator.apply(ctx);
+                    String jsonStr = pathData != null ? pathData : ctx.msg.string();
+                    
+                    if (jsonStr != null)
+                        return deserializer.deserialize(jsonStr, type);
+                    else
+                        return null;
+                    
+                });
+                
+            }
+        }
     }
     
     @Override
@@ -265,7 +386,6 @@ public class ReflectionListener
         
     }
     
-    @SuppressWarnings("unchecked")
     public void receiveMessage(Message message)
     {
         
@@ -280,7 +400,8 @@ public class ReflectionListener
             YContext.push(RMB.CTX_RMB, rmb);
             YContext.push(RMB.CTX_OBJECT, ctx);
             
-            HashMap<String, String> pathParams = null;
+            RequestContext ctx = new RequestContext();
+            
             
             if (this.pattern == null)
             {
@@ -297,13 +418,13 @@ public class ReflectionListener
                 if (!matcher.matches())
                     return;
                     
-                pathParams = new HashMap<String, String>();
+                ctx.pathParams = new HashMap<String, String>();
                 
                 int groupId = 1;
                 for (String groupName : this.matcherGroups)
                 {
                     String value = matcher.group(groupId);
-                    pathParams.put(groupName, value);
+                    ctx.pathParams.put(groupName, value);
                     groupId++;
                 }
                 
@@ -311,95 +432,19 @@ public class ReflectionListener
             
             this.preprocessors.forEach(fun -> fun.accept(message));
             
-            LinkedList<Object> objs = new LinkedList<Object>();
-            Parameter[] params = this.m.getParameters();
-            Map<String, String> parameters = message.to().getParameters();
-            Map<String, Object> body = null;
+            Object[] objs = new Object[params.length];
+            int objIdx = 0;
+            ctx.msg = message;
+            ctx.parameters = message.to().getParameters();
             
-            for (int i = 0; i < params.length; i++)
-            {
-                Parameter param = params[i];
-                Class<?> type = param.getType();
-                
-                HashMap<Class<? extends Annotation>, Annotation> anns = AnnotationScanner.scanParameter(o.getClass(), m, param);
-                //Annotation[] anns = annotations[i];
-                
-                String pathData = null;
-                PathParam pathAnn = (PathParam) anns.get(PathParam.class);
-                QueryParam queryAnn = (QueryParam) anns.get(QueryParam.class);
-                JsonParam jsonAnn = (JsonParam) anns.get(JsonParam.class);
-                
-                Function<String, String> getFieldName = (value) -> {
-                    if (value.trim().length() > 0)
-                        return value;
-                    return param.getName();
-                };
-                
-                if (pathAnn != null)
-                {
-                    String pathElement = getFieldName.apply(pathAnn.value());
-                    pathData = pathParams.get(pathElement);
-                }
-                else if (queryAnn != null)
-                {
-                    String queryElement = getFieldName.apply(queryAnn.name());
-                    pathData = parameters.get(queryElement);
-                    if (pathData == null || pathData.trim().length() == 0)
-                        pathData = queryAnn.value();
-                }
-                else if (jsonAnn != null)
-                {
-                    try
-                    {
-                        String path = getFieldName.apply(jsonAnn.value());
-                        String[] keys = path.split("\\.");
-                        Object cData = body;
-                        
-                        if (body == null)
-                            body = message.object(Map.class);
-                            
-                        for (int k = 0; k < keys.length; k++)
-                        {
-                            cData = ((Map<String, Object>) cData).get(keys[k]);
-                        }
-                        pathData = cData.toString();
-                    }
-                    catch (Exception e)
-                    {
-                        throw new RuntimeException("Error parsing parameter " + param + " from JSON body");
-                    }
-                    
-                }
-                
-                if (type.isAssignableFrom(RMB.class))
-                {
-                    objs.add(rmb);
-                }
-                else if (type.isAssignableFrom(Message.class))
-                {
-                    objs.add(message);
-                }
-                else if (providers.get(type) != null)
-                {
-                    BiFunction<String, Message, Object> provider = providers.get(type);
-                    objs.add(provider.apply(pathData, message));
-                }
-                else
-                {
-                    String jsonStr = pathData != null ? pathData : message.string();
-                    
-                    if (jsonStr != null)
-                        objs.add(JSON.fromJSON(jsonStr, type));
-                    else
-                        objs.add(null);
-                }
-            }
+            for (Function<RequestContext, Object> fun : paramTranslators)
+                objs[objIdx++] = fun.apply(ctx);
             
             Object rv;
             Response resp = null;
             try
             {
-                rv = this.m.invoke(this.o, objs.toArray());
+                rv = this.m.invoke(this.o, objs);
             }
             catch (Exception e)
             {
