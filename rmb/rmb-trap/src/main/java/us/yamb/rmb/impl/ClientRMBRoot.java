@@ -50,6 +50,7 @@ public class ClientRMBRoot extends RMBRootImpl implements OnData, OnOpen, OnClos
         try
         {
             client = TrapFactory.createClient(options.toString(), true);
+            client.setReconnectTimeout(1000);
             client.setDelegate(this, true);
             client.disableTransport("http");
             client.open();
