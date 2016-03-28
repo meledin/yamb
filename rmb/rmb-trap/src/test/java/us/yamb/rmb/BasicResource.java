@@ -44,6 +44,22 @@ public class BasicResource
         return "bar";
     }
     
+    @GET
+    @Path("slow")
+    public String slow()
+    {
+        try
+        {
+            Thread.sleep(1000);
+        }
+        catch (InterruptedException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return "slow";
+    }
+    
     @POST
     public String process(Map<String, String> bodyParams) {
         System.out.println("Process");

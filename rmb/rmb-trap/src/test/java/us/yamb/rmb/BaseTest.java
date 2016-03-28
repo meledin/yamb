@@ -6,11 +6,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ericsson.research.trap.utils.JDKLoggerConfig;
+
 import us.yamb.amb.spi.AsyncResultImpl;
 import us.yamb.rmb.Request.Reply;
 import us.yamb.rmb.builders.RMBBuilder;
-
-import com.ericsson.research.trap.utils.JDKLoggerConfig;
 
 public class BaseTest
 {
@@ -81,6 +81,18 @@ public class BaseTest
         client.get(server.id() + "/foo" + "/bar").execute(res);
         
         Assert.assertEquals("bar", res.get().string());
+        
+    }
+    
+    @Test(timeout = 10000)
+    public void testConfirmed() throws Exception
+    {
+        AsyncResultImpl<Reply> res = new AsyncResultImpl<>();
+        
+        server.add(new BasicResource(server));
+        client.get(server.id() + "/slow").confirmed(100).confirmed(true).execute(res);
+        
+        Assert.assertEquals("slow", res.get().string());
         
     }
 }
