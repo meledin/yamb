@@ -103,7 +103,7 @@
 	</modules>
 	<inceptionYear>2014</inceptionYear>
  	<properties>
-		<trap.version>1.4.2-SNAPSHOT</trap.version>
+		<trap.version>1.4.3-SNAPSHOT</trap.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>

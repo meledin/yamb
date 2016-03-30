@@ -160,10 +160,11 @@ public class PackedMessage<T>
 		{
 			preamble.putShort((short) e.getKey().getId());
 			
-			if (e.getValue() == null)
-			    continue;
+			String strVal = e.getValue();
+			if (strVal == null)
+			    strVal = "";
 			
-			byte[] val = StringUtil.toUtfBytes(e.getValue());
+			byte[] val = StringUtil.toUtfBytes(strVal);
 			preamble.putShort((short) val.length);
 			hvStream.write(val);
 		}
