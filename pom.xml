@@ -103,7 +103,7 @@
 	</modules>
 	<inceptionYear>2014</inceptionYear>
  	<properties>
-		<trap.version>1.4.1-SNAPSHOT</trap.version>
+		<trap.version>1.4.2-SNAPSHOT</trap.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -135,7 +135,22 @@
 			<dependency>
 				<groupId>com.ericsson.research.trap</groupId>
 				<artifactId>trap-js</artifactId>
-				<version>1.4.1-SNAPSHOT</version>
+				<version>${trap.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ericsson.research.trap</groupId>
+				<artifactId>trap-transport-loopback</artifactId>
+				<version>${trap.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-jdk14</artifactId>
+				<version>1.7.10</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ericsson.research.trap.transports</groupId>
+				<artifactId>http-client-sun</artifactId>
+				<version>${trap.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

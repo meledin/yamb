@@ -17,14 +17,12 @@ import us.yamb.rmb.Send;
 import us.yamb.rmb.impl.builders.RequestImpl;
 import us.yamb.rmb.impl.builders.SendBuilder;
 
-import com.ericsson.research.trap.utils.ThreadPool;
-
-public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
+public class RMBRootImpl extends RMBRoot implements OnConnect, OnChannel, OnMessage
 {
     
     private AMB amb;
     
-    public RMBRoot(AMB amb)
+    public RMBRootImpl(AMB amb)
     {
         this.amb = amb;
         amb.setCallback(this);
@@ -84,11 +82,11 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     public void onmessage(AMB amb, Message message)
     {
         
-        ThreadPool.executeCached(new Runnable() {
+        /*ThreadPool.executeCached(new Runnable() {
             
             @Override
             public void run()
-            {
+            {*/
                 RMBMessage<?> msg = RMBMessage.deserialize(message.bytes());
                 YContext.push(RMB.CTX_MESSAGE, msg);
                 try
@@ -122,9 +120,9 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
                 finally
                 {
                     YContext.pop(RMB.CTX_MESSAGE, msg);
-                }
+                }/*
             }
-        });
+        });*/
     }
     
     @Override
@@ -140,7 +138,6 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
         return new RequestImpl(res, amb.message());
     }
     
-    @Override
     public us.yamb.amb.Send _ambSend()
     {
         return amb.message();
@@ -150,5 +147,9 @@ public class RMBRoot extends RMBImpl implements OnConnect, OnChannel, OnMessage
     public void remove()
     {
         // No effect on root
+    }
+    
+    public String toString() {
+        return "RMB with ID " + this.id() + " with status " + amb.status() + ". SeedInfo is [" + this.seedInfo() + "]";
     }
 }

@@ -3,6 +3,7 @@ package us.yamb.rmb;
 import java.io.IOException;
 
 import us.yamb.mb.callbacks.AsyncResult;
+import us.yamb.mb.callbacks.AsyncResult.AsyncErrorCallback;
 import us.yamb.mb.callbacks.AsyncResult.AsyncResultCallback;
 import us.yamb.rmb.builders.RestMessageBuilder;
 
@@ -22,6 +23,7 @@ public interface Request extends RestMessageBuilder<Request>
     
     AsyncResult<Reply> execute() throws IOException;
     
+    @Deprecated
     void execute(AsyncResultCallback<Reply> callback) throws IOException;
     
     /**
@@ -33,9 +35,24 @@ public interface Request extends RestMessageBuilder<Request>
      * @param exceptionHandler
      *            A callback to be called if an exception occurs during the send operation.
      */
-    void execute(AsyncResultCallback<Reply> callback, AsyncResultCallback<IOException> exceptionHandler);
+    void execute(AsyncResultCallback<Reply> callback, AsyncErrorCallback exceptionHandler);
     
     void send() throws IOException;
     
     Request timeout(long msec);
+    
+    /**
+     * Sets the confirmation timeout. Also sets confirmed to true. The request will have an ErrorCallback called if the message
+     * isn't confirmed within the given duration.
+     * 
+     * @param msec
+     * @return
+     */
+    Request confirmed(long msec);
+    
+    public Location from();
+    
+    public Location to();
+    
+    public String method();
 }

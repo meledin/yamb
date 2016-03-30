@@ -113,6 +113,32 @@
 		
 		return decodeURIComponent( escape( str ) );
 	};
+
+	var toUTF8ByteArray = function(src) {
+		var bytes = [];
+
+		var s = unescape(encodeURIComponent(src));
+
+		for (var i = 0; i < s.length; i++) {
+			var c = s.charCodeAt(i);
+			bytes.push(c);
+		}
+
+		return bytes;
+	};
+
+	var fromUTF8ByteArray = function(arr, offset, length) {
+		var str = "";
+		if (typeof(offset) == "undefined")
+		{
+			offset = 0; length = arr.length;
+		}
+		
+		for (var i=offset; i<length; i++)
+			str += String.fromCharCode(arr[i]);
+		
+		return decodeURIComponent( escape( str ) );
+	};
 	
 	Trap._compat = {};
 
@@ -218,13 +244,60 @@
 		
 	}
 	
-	var Message = function(){};
-	Message.prototype.string = function() {
+	var Message = function(){
+		this.headers = {};
+	};
+	Message.prototype._string = function() {
 		return fromJSONByteArray(this.data);
 	};
-	Message.prototype.object = function() {
+	Message.prototype._object = function() {
 		return JSON.parse(this.string);
 	};
+	
+	Message.Headers = {};
+	Message.Headers.addHeader = function(name, val) { Message.Headers[name]=val; Message.Headers[val]=name; };
+	Message.Headers.addHeader("To", 1);
+	Message.Headers.addHeader("From", 2);
+	Message.Headers.addHeader("ContentType", 3);
+	Message.Headers.addHeader("Method", 4);
+	Message.Headers.addHeader("Status", 5);
+	Message.Headers.addHeader("Confirmed", 6);
+	Message.Headers.addHeader("Id", 7);
+	Message.Headers.addHeader("Custom", 255);
+	
+	Message.parse = function(data) {
+		var in8 = new Uint8Array(data);
+		var in16 = new Uint16Array(data);
+		var in32 = new Uint32Array(data);
+		
+		// Read the entire message length. 
+		var length = in32[0];
+		
+		// Read the number of headers
+		var nHeaders = in8[4];
+		
+		// The preamble length (in bytes) is 8 bytes (the amount we read this far)
+		// plus 4 bytes that descripe a header name/value pair.
+		var preambleLength = 8+4*nHeaders;
+		
+		var headerIds = [];
+		var headerLengths = [];
+		
+		// We now read the appropriate number of headers.
+		// The offset in bytes thus far is 8, so 8/2=4 is our offset.
+		for (var i=0; i < nHeaders; i++)
+		{
+			headerIds[i] = in16[4+(2*i)];
+			headerLengths[i] = in16[4+(2*i+1)];
+		}
+		
+		// Okay, now what? Time to read the header values.
+		// All header values come packed in the buffer with no separators. We have read out all the lengths
+		// above though, so now we get the values.
+		
+		
+		
+	}
 	
 	var dispatchFun = function(msg) {
 		var to = msg.location.parts[msg.idx];

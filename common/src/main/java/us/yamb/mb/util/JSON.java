@@ -1,5 +1,6 @@
 package us.yamb.mb.util;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -111,7 +112,7 @@ public class JSON
         addTransform(void.class, new ExcludeTransformer(), f);
         addTransform(UUID.class, new ToStringTransformer(), new UUIDFactory());
         addTransform(URI.class, new ToStringTransformer(), new URIFactory());
-
+        
         try
         {
             JSON.addTransform(JsonNumber.class, new AbstractTransformer() {
@@ -215,8 +216,17 @@ public class JSON
     public static void toJSON(Object o, OutputStream stream)
     {
         JSONSerializer s = serializer();
-        
-        s.deepSerialize(o, new OutputStreamWriter(stream));
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(stream);
+        s.deepSerialize(o, outputStreamWriter);
+        try
+        {
+            outputStreamWriter.flush();
+            outputStreamWriter.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
     
     /**
@@ -248,6 +258,10 @@ public class JSON
     {
         if (s == null)
             return null;
+        if (s.trim().length() == 0)
+            return null;
+        if (s.trim().length() < 2)
+            throw new IllegalArgumentException("\"" + s + "\" is not valid JSON");
         try
         {
             return (T) deserializer().deserialize(s, c);
@@ -467,7 +481,8 @@ class FieldObjectFactory extends BeanObjectFactory
                         if (types.length == 1)
                         {
                             Type paramType = types[0];
-                            setMethod.invoke(objectStack.getLast(), bind.invoke(context, value, resolveParameterizedTypes.invoke(context, paramType, targetType)));
+                            setMethod.invoke(objectStack.getLast(),
+                                             bind.invoke(context, value, resolveParameterizedTypes.invoke(context, paramType, targetType)));
                         }
                         else
                         {

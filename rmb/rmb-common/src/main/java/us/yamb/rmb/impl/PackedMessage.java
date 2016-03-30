@@ -8,11 +8,11 @@ import java.util.Map.Entry;
 
 import us.yamb.mb.util.StringUtil;
 
-public class PackedMessage
+public class PackedMessage<T>
 {
 	public enum Header
 	{
-		To(1), From(2), ContentType(3), Method(4), Custom(255);
+		To(1), From(2), ContentType(3), Method(4), Status(5), Confirmed(6), Id(7), Custom(255);
 
 		private int	id;
 
@@ -37,8 +37,14 @@ public class PackedMessage
 					return From;
 				case 3:
 					return ContentType;
-				case 4:
-					return Method;
+                case 4:
+                    return Method;
+                case 5:
+                    return Status;
+                case 6:
+                    return Confirmed;
+                case 7:
+                    return Id;
 				default:
 					return null;
 			}
@@ -86,9 +92,14 @@ public class PackedMessage
 		return body;
 	}
 
-	public void bytes(byte[] body)
+	public T data(byte[] body)
 	{
 		this.body = body;
+		
+		if (body == null)
+		    this.body = new byte[0];
+		
+		return (T) this;
 	}
 
 	public String header(Header header)
@@ -148,6 +159,10 @@ public class PackedMessage
 		for (Entry<Header, String> e : this.headers.entrySet())
 		{
 			preamble.putShort((short) e.getKey().getId());
+			
+			if (e.getValue() == null)
+			    continue;
+			
 			byte[] val = StringUtil.toUtfBytes(e.getValue());
 			preamble.putShort((short) val.length);
 			hvStream.write(val);
@@ -189,11 +204,9 @@ public class PackedMessage
 
 	}
 
-	public static PackedMessage unpack(byte[] bs) throws RMBException
+	public static <T extends PackedMessage> T unpack(byte[] bs, T msg) throws RMBException
 	{
-
-		PackedMessage msg = new PackedMessage();
-
+	    
 		int length = ByteBuffer.wrap(bs, 0, 4).getInt();
 
 		ByteBuffer opts = ByteBuffer.wrap(bs, 4, 4);
@@ -224,12 +237,12 @@ public class PackedMessage
 			if (hnameLength > 0)
 			{
 				String name = StringUtil.toUtfString(bs, headerOffset, hnameLength);
-				msg.header(name, value);
+				msg._header(name, value);
 			}
 			else
 			{
 				Header header = Header.fromId(headerIds[i]);
-				msg.header(header, value);
+				msg._header(header, value);
 			}
 
 			headerOffset += hnameLength + headerLengths[i];
@@ -244,19 +257,21 @@ public class PackedMessage
 		byte[] body = new byte[bodyLength];
 		System.arraycopy(bs, headerOffset + 4, body, 0, bodyLength);
 
-		msg.bytes(body);
+		msg.data(body);
 
 		return msg;
 	}
 
-	public void header(Header header, String value)
+	public PackedMessage _header(Header header, String value)
 	{
 		headers.put(header, value);
+		return this;
 	}
 
-	public void header(String name, String value)
+	public PackedMessage _header(String name, String value)
 	{
 		customHeaders.put(name, value);
+		return this;
 	}
 
 }

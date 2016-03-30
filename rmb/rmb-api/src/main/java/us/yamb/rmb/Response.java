@@ -104,4 +104,6 @@ public interface Response extends RestMessageBuilder<Response>
 			throw new RuntimeException(e);
 		}
 	}
+
+    void throwException(Object probableCause) throws ResponseException;
 }

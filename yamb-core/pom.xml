@@ -16,7 +16,6 @@
 		<dependency>
 			<groupId>com.ericsson.research.trap</groupId>
 			<artifactId>trap-transport-loopback</artifactId>
-			<version>1.4.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 

@@ -8,19 +8,28 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import flexjson.JSONDeserializer;
 import us.yamb.mb.callbacks.AsyncResult;
 import us.yamb.mb.util.AnnotationScanner;
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
+import us.yamb.mb.util.StringUtil;
 import us.yamb.mb.util.YContext;
 import us.yamb.rmb.Message;
 import us.yamb.rmb.RMB;
@@ -38,8 +47,6 @@ import us.yamb.rmb.annotations.QueryParam;
 import us.yamb.rmb.kpi.CounterMonitor;
 import us.yamb.rmb.kpi.TimeMonitor;
 import us.yamb.rmb.kpi.TimeMonitor.Stopwatch;
-
-import com.ericsson.research.trap.utils.StringUtil;
 
 /**
  * ReflectionListener is a wrapping class that allows objects to listen to messages at specific paths, with arbitrary method
@@ -136,21 +143,25 @@ public class ReflectionListener
     private final Object                                      o;
     private final Method                                      m;
     private String                                            listenerPath;
-    private LinkedList<String>                                matcherGroups = new LinkedList<String>();
+    private LinkedList<String>                                matcherGroups  = new LinkedList<String>();
     private String                                            regex;
     private Pattern                                           pattern;
     @SuppressWarnings("unused")
     private String                                            identifier;
     private RMB                                               rmb;
-    
-    static Map<Class<?>, BiFunction<String, Message, Object>> providers     = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
-    
+                                                              
+    static Map<Class<?>, BiFunction<String, Message, Object>> providers      = new HashMap<Class<?>, BiFunction<String, Message, Object>>();
+                                                                             
     private CounterMonitor                                    numRequests;
     private CounterMonitor                                    numOKs;
     private CounterMonitor                                    numErrors;
     private TimeMonitor                                       servicingTime;
-    private Object                                            ctx           = null;
-    
+    private Object                                            ctx            = null;
+    private Logger                                            logger         = LoggerFactory.getLogger(ReflectionListener.class);
+                                                                             
+    private ArrayList<Consumer<Message>>                      preprocessors  = new ArrayList<>();
+    private ArrayList<BiConsumer<Message, Object>>            postprocessors = new ArrayList<>();
+                                                                             
     public ReflectionListener(RMBImpl rmb, Object o, Method m, String listenerPath)
     {
         this(rmb, o, m, listenerPath, null);
@@ -165,7 +176,7 @@ public class ReflectionListener
             name = o.getClass().getName();
         if (name == null)
             name = "anonymous";
-        
+            
         name += "_";
         name += m.getName();
         
@@ -235,6 +246,8 @@ public class ReflectionListener
             }
         }
         
+        createListenerParsers();
+        
         /*
          * For the reflection listener, we'll create a new identifier, a composite of object and method.
          * This composite will replace the hashCode of our ReflectionListener, making it apparently-identical
@@ -244,21 +257,141 @@ public class ReflectionListener
         
     }
     
+    static class RequestContext
+    {
+        Message                 msg;
+        HashMap<String, String> pathParams = new HashMap<>();
+        Map<String, String>     parameters;
+        Map<String, Object>     jsonBody;
+    }
+    
+    private final List<Function<RequestContext, Object>> paramTranslators = new LinkedList<>();
+    private Parameter[] params;
+    
+    @SuppressWarnings("unchecked")
+    private void createListenerParsers()
+    {
+        params = this.m.getParameters();
+        
+        for (int i = 0; i < params.length; i++)
+        {
+            Parameter param = params[i];
+            Class<?> type = param.getType();
+            
+            if (type.isAssignableFrom(RMB.class))
+            {
+                paramTranslators.add(ctx -> rmb);
+                continue;
+            }
+            else if (type.isAssignableFrom(Message.class))
+            {
+                paramTranslators.add(ctx -> ctx.msg);
+                continue;
+            }
+            
+            HashMap<Class<? extends Annotation>, Annotation> anns = AnnotationScanner.scanParameter(o.getClass(), m, param);
+            
+            PathParam pathAnn = (PathParam) anns.get(PathParam.class);
+            QueryParam queryAnn = (QueryParam) anns.get(QueryParam.class);
+            JsonParam jsonAnn = (JsonParam) anns.get(JsonParam.class);
+            
+            Function<RequestContext, String> pathDataGenerator;
+            
+            Function<String, String> getFieldName = (value) -> {
+                if (value.trim().length() > 0)
+                    return value;
+                return param.getName();
+            };
+            
+            if (pathAnn != null)
+            {
+                String pathElement = getFieldName.apply(pathAnn.value());
+                pathDataGenerator = ctx -> ctx.pathParams.get(pathElement);
+            }
+            else if (queryAnn != null)
+            {
+                String queryElement = getFieldName.apply(queryAnn.name());
+                pathDataGenerator = ctx -> {
+                    String pData = ctx.parameters.get(queryElement);
+                    if (pData == null || pData.trim().length() == 0)
+                        pData = queryAnn.value();
+                    return pData;
+                };
+            }
+            else if (jsonAnn != null)
+            {
+                pathDataGenerator = ctx -> {
+                    try
+                    {
+                        String path = getFieldName.apply(jsonAnn.value());
+                        String[] keys = path.split("\\.");
+                        
+                        if (ctx.jsonBody == null)
+                            ctx.jsonBody = ctx.msg.object(Map.class);
+                            
+                        Object cData = ctx.jsonBody;
+                        
+                        for (int k = 0; k < keys.length; k++)
+                        {
+                            cData = ((Map<String, Object>) cData).get(keys[k]);
+                        }
+                        
+                        return cData.toString();
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RuntimeException("Error parsing parameter " + param + " from JSON body");
+                    }
+                };
+                
+            }
+            else
+            {
+                pathDataGenerator = ctx -> null;
+            }
+            
+            if (providers.get(type) != null)
+            {
+                BiFunction<String, Message, Object> provider = providers.get(type);
+                paramTranslators.add(ctx -> provider.apply(pathDataGenerator.apply(ctx), ctx.msg));
+            }
+            else
+            {
+                JSONDeserializer<Object> deserializer = JSON.deserializer();
+                paramTranslators.add(ctx -> {
+                    
+                    String pathData = pathDataGenerator.apply(ctx);
+                    String jsonStr = pathData != null ? pathData : ctx.msg.string();
+                    
+                    if (jsonStr != null)
+                        return deserializer.deserialize(jsonStr, type);
+                    else
+                        return null;
+                    
+                });
+                
+            }
+        }
+    }
+    
     @Override
     public boolean equals(Object object)
     {
         if (!(object instanceof ReflectionListener))
             return false;
-        
+            
         ReflectionListener other = (ReflectionListener) object;
         
         return (this.o.equals(other.o) && this.m.equals(other.m));
         
     }
     
-    @SuppressWarnings("unchecked")
     public void receiveMessage(Message message)
     {
+        
+        if (logger.isTraceEnabled())
+            logger.trace("Received message from {} to method {}.{}", message.to(), m.getDeclaringClass().getSimpleName(), m.getName());
+            
         numRequests.increment();
         Stopwatch watch = servicingTime.start();
         try
@@ -267,7 +400,8 @@ public class ReflectionListener
             YContext.push(RMB.CTX_RMB, rmb);
             YContext.push(RMB.CTX_OBJECT, ctx);
             
-            HashMap<String, String> pathParams = null;
+            RequestContext ctx = new RequestContext();
+            
             
             if (this.pattern == null)
             {
@@ -283,108 +417,34 @@ public class ReflectionListener
                 
                 if (!matcher.matches())
                     return;
-                
-                pathParams = new HashMap<String, String>();
+                    
+                ctx.pathParams = new HashMap<String, String>();
                 
                 int groupId = 1;
                 for (String groupName : this.matcherGroups)
                 {
                     String value = matcher.group(groupId);
-                    pathParams.put(groupName, value);
+                    ctx.pathParams.put(groupName, value);
                     groupId++;
                 }
                 
             }
             
-            LinkedList<Object> objs = new LinkedList<Object>();
-            Parameter[] params = this.m.getParameters();
-            Map<String, String> parameters = message.to().getParameters();
-            Map<String, Object> body = null;
+            this.preprocessors.forEach(fun -> fun.accept(message));
             
-            for (int i = 0; i < params.length; i++)
-            {
-                Parameter param = params[i];
-                Class<?> type = param.getType();
-                
-                HashMap<Class<? extends Annotation>, Annotation> anns = AnnotationScanner.scanParameter(o.getClass(), m, param);
-                //Annotation[] anns = annotations[i];
-                
-                String pathData = null;
-                PathParam pathAnn = (PathParam) anns.get(PathParam.class);
-                QueryParam queryAnn = (QueryParam) anns.get(QueryParam.class);
-                JsonParam jsonAnn = (JsonParam) anns.get(JsonParam.class);
-                
-                Function<String, String> getFieldName = (value) -> {
-                    if (value.trim().length() > 0)
-                        return value;
-                    return param.getName();
-                };
-                
-                if (pathAnn != null)
-                {
-                    String pathElement = getFieldName.apply(pathAnn.value());
-                    pathData = pathParams.get(pathElement);
-                }
-                else if (queryAnn != null)
-                {
-                    String queryElement = getFieldName.apply(queryAnn.name());
-                    pathData = parameters.get(queryElement);
-                    if (pathData == null || pathData.trim().length() == 0)
-                        pathData = queryAnn.value();
-                }
-                else if (jsonAnn != null)
-                {
-                    try
-                    {
-                        String path = getFieldName.apply(jsonAnn.value());
-                        String[] keys = path.split("\\.");
-                        Object cData = body;
-                        
-                        if (body == null)
-                            body = message.object(Map.class);
-                        
-                        for (int k = 0; k < keys.length; k++)
-                        {
-                            cData = ((Map<String, Object>) cData).get(keys[k]);
-                        }
-                        pathData = cData.toString();
-                    }
-                    catch (Exception e)
-                    {
-                        throw new RuntimeException("Error parsing parameter " + param + " from JSON body");
-                    }
-                    
-                }
-                
-                if (type.isAssignableFrom(RMB.class))
-                {
-                    objs.add(rmb);
-                }
-                else if (type.isAssignableFrom(Message.class))
-                {
-                    objs.add(message);
-                }
-                else if (providers.get(type) != null)
-                {
-                    BiFunction<String, Message, Object> provider = providers.get(type);
-                    objs.add(provider.apply(pathData, message));
-                }
-                else
-                {
-                    String jsonStr = pathData != null ? pathData : message.string();
-                    
-                    if (jsonStr != null)
-                        objs.add(JSON.fromJSON(jsonStr, type));
-                    else
-                        objs.add(null);
-                }
-            }
+            Object[] objs = new Object[params.length];
+            int objIdx = 0;
+            ctx.msg = message;
+            ctx.parameters = message.to().getParameters();
+            
+            for (Function<RequestContext, Object> fun : paramTranslators)
+                objs[objIdx++] = fun.apply(ctx);
             
             Object rv;
             Response resp = null;
             try
             {
-                rv = this.m.invoke(this.o, objs.toArray());
+                rv = this.m.invoke(this.o, objs);
             }
             catch (Exception e)
             {
@@ -394,6 +454,7 @@ public class ReflectionListener
             // Check the tree for a ResponseException
             if (rv instanceof Throwable)
             {
+                logger.trace("Execution yielded exception {}", rv.toString());
                 Throwable e = (Throwable) rv;
                 
                 while (e instanceof InvocationTargetException || e instanceof UndeclaredThrowableException)
@@ -403,25 +464,38 @@ public class ReflectionListener
                     
                     if (cause == null)
                         cause = ((InvocationTargetException) e).getTargetException();
-                    
+                        
                     if (cause == null)
                         break;
-                    
+                        
                     e = cause;
                 }
                 
                 while (!(e instanceof ResponseException) && e.getCause() != null && e.getCause() != e.getCause())
                     e = e.getCause();
-                
+                    
                 if (e instanceof ResponseException)
                     resp = ((ResponseException) e).response();
-                
+                    
+            }
+            
+            {
+                Object rvCtx = resp != null ? resp : rv;
+                postprocessors.forEach(proc -> proc.accept(message, rvCtx));
             }
             
             if (resp != null)
             {
+                logger.trace("Sending message due to ResponseException; status is {}", resp);
                 resp.to(message.from());
                 resp.send(rmb);
+                numOKs.increment();
+            }
+            else if (rv instanceof Response)
+            {
+                logger.trace("Sending message due to Response return value; status is {}", resp);
+                ((Response) rv).to(message.from());
+                ((Response) rv).send(rmb);
                 numOKs.increment();
             }
             else if (rv instanceof Exception)
@@ -436,6 +510,7 @@ public class ReflectionListener
             }
             else if (rv instanceof AsyncResult<?>)
             {
+                logger.trace("Neglecting to send a response due to AsyncResult");
                 ((AsyncResult<?>) rv).setCallback((asyncResponse) -> {
                     try
                     {
@@ -447,20 +522,26 @@ public class ReflectionListener
                         numErrors.increment();
                         throw new RuntimeException(e);
                     }
+                } , (reason, ex) -> {
+                    numErrors.increment();
+                    throw new RuntimeException(ex);
                 });
             }
             else if (rv != null)
             {
+                logger.trace("Sending a 200 OK with data reply");
                 Response.ok().to(message).status(200).data(rv).method("POST").send(rmb);
                 numOKs.increment();
             }
-            else if (this.m.getReturnType().equals(void.class))
+            else if (!this.m.getReturnType().equals(void.class))
             {
+                logger.trace("Sending a no-content reply");
                 Response.ok().to(message).status(204).send(rmb);
                 numOKs.increment();
             }
             else
             {
+                logger.trace("Neglecting to send a response due to null result of void");
                 numOKs.increment();
             }
             
@@ -484,16 +565,16 @@ public class ReflectionListener
     {
         if (m.getAnnotation(GET.class) != null)
             rmb.onget(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(PUT.class) != null)
             rmb.onput(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(POST.class) != null)
             rmb.onpost(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(DELETE.class) != null)
             rmb.ondelete(msg -> this.receiveMessage(msg));
-        
+            
         if (m.getAnnotation(HEAD.class) != null)
             rmb.onhead(msg -> this.receiveMessage(msg));
     }
@@ -514,7 +595,7 @@ public class ReflectionListener
                 src = StringUtil.toUtfBytes(string);
             else
                 src = msg.bytes();
-            
+                
             return fun.apply(src);
         };
         
@@ -579,16 +660,16 @@ public class ReflectionListener
     {
         if (anns.containsKey(GET.class))
             rmb.onget(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(PUT.class))
             rmb.onput(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(POST.class))
             rmb.onpost(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(DELETE.class))
             rmb.ondelete(msg -> this.receiveMessage(msg));
-        
+            
         if (anns.containsKey(HEAD.class))
             rmb.onhead(msg -> this.receiveMessage(msg));
     }
@@ -596,6 +677,16 @@ public class ReflectionListener
     public static BiFunction<String, Message, Object> getProvider(Class<?> cls)
     {
         return providers.get(cls);
+    }
+    
+    public void addPreprocessor(Consumer<Message> processor)
+    {
+        this.preprocessors.add(processor);
+    }
+    
+    public void addPostprocessor(BiConsumer<Message, Object> processor)
+    {
+        this.postprocessors.add(processor);
     }
     
 }

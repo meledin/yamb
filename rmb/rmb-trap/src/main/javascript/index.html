@@ -1,0 +1,12 @@
+<html>
+<head>
+<script src="trap-full.js"></script>
+<script src="rmb-trap.js"></script>
+<script>
+rmb = RMB.builder().seed("http://127.0.0.1:4442/_connectTrap").build();
+rmb.onopen = function() {
+	console.log("open");
+};
+</script>
+</head>
+</html>

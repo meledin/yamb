@@ -1,29 +1,26 @@
 package us.yamb.rmb.impl;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import us.yamb.mb.util.JSON;
 import us.yamb.mb.util.JSONSerializable;
+import us.yamb.mb.util.StringUtil;
 import us.yamb.rmb.Location;
 import us.yamb.rmb.Message;
 
-import com.ericsson.research.trap.utils.StringUtil;
-
-public class RMBMessage<T> implements Message, JSONSerializable
+public class RMBMessage<T> extends PackedMessage<T> implements Message, JSONSerializable
 {
     
-    public String                  from;
-    public String                  to;
-    public String                  method  = "POST";
-    public HashMap<String, String> headers = new HashMap<String, String>();
-    public byte[]                  data;
-    public boolean                 confirmed;
-    public long                    id;
-    private int                    status;
+    public String  from;
+    public String  to;
+    public String  method = "POST";
+    public boolean confirmed;
+    public long    id;
+    private int    status;
     
     @Override
     public Collection<String> getFieldNames()
@@ -34,13 +31,13 @@ public class RMBMessage<T> implements Message, JSONSerializable
     @Override
     public Location from()
     {
-        return new Location(from);
+        return Location.parse(from);
     }
     
     @Override
     public Location to()
     {
-        return new Location(to);
+        return Location.parse(to);
     }
     
     @Override
@@ -52,19 +49,13 @@ public class RMBMessage<T> implements Message, JSONSerializable
     @Override
     public String header(String name)
     {
-        return headers.get(name);
-    }
-    
-    @Override
-    public byte[] bytes()
-    {
-        return data;
+        return customHeaders.get(name);
     }
     
     @Override
     public String string()
     {
-        return StringUtil.toUtfString(data);
+        return StringUtil.toUtfString(bytes());
     }
     
     @Override
@@ -87,12 +78,40 @@ public class RMBMessage<T> implements Message, JSONSerializable
     
     public byte[] serialize()
     {
-        return StringUtil.toUtfBytes(JSON.toJSON(this, "class"));
+        this._header(Header.From, from);
+        this._header(Header.To, to);
+        this._header(Header.Method, method);
+        this._header(Header.Confirmed, Boolean.toString(confirmed));
+        this._header(Header.Id, Long.toString(id));
+        this._header(Header.Status, Integer.toString(status));
+        
+        try
+        {
+            return pack();
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
     
     public static RMBMessage<?> deserialize(byte[] src)
     {
-        return JSON.fromJSON(StringUtil.toUtfString(src), RMBMessage.class);
+        try
+        {
+            RMBMessage<?> msg = PackedMessage.unpack(src, new RMBMessage<>());
+            msg.from = msg.headers.get(Header.From);
+            msg.to = msg.headers.get(Header.To);
+            msg.method = msg.headers.get(Header.Method);
+            msg.confirmed = Boolean.valueOf(msg.headers.get(Header.Confirmed));
+            msg.id = Long.parseLong(msg.headers.get(Header.Id));
+            msg.status = Integer.parseInt(msg.headers.get(Header.Status));
+            return msg;
+        }
+        catch (RMBException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
     
     @SuppressWarnings("unchecked")
@@ -117,17 +136,10 @@ public class RMBMessage<T> implements Message, JSONSerializable
     }
     
     @SuppressWarnings("unchecked")
-    public T data(byte[] data)
-    {
-        this.data = data;
-        return (T) this;
-    }
-    
-    @SuppressWarnings("unchecked")
     public T data(String data)
     {
         if (data != null)
-            data(StringUtil.toUtfBytes(data));
+            super.data(StringUtil.toUtfBytes(data));
         return (T) this;
     }
     
@@ -135,11 +147,11 @@ public class RMBMessage<T> implements Message, JSONSerializable
     public T data(Object data)
     {
         if (data == null)
-            this.data = null;
+            super.data(new byte[0]);
         else if (String.class.isAssignableFrom(data.getClass()))
             data((String) data);
         else if (byte[].class.isAssignableFrom(data.getClass()))
-            data((byte[]) data);
+            super.data((byte[]) data);
         else
             data(JSON.toJSON(data));
         return (T) this;
@@ -154,7 +166,7 @@ public class RMBMessage<T> implements Message, JSONSerializable
     
     protected void from(String id)
     {
-        from(new Location(id));
+        from(Location.parse(id));
     }
     
     protected void from(Location path)
@@ -177,14 +189,14 @@ public class RMBMessage<T> implements Message, JSONSerializable
     @SuppressWarnings("unchecked")
     public T to(String id)
     {
-        to(new Location(id));
+        to(Location.parse(id));
         return (T) this;
     }
     
     @SuppressWarnings("unchecked")
     public T header(String name, String value)
     {
-        headers.put(name, value);
+        customHeaders.put(name, value);
         return (T) this;
     }
     
@@ -208,20 +220,20 @@ public class RMBMessage<T> implements Message, JSONSerializable
         out.append(" -> ");
         out.append(to);
         out.append("\n");
-        for (Iterator<String> it = this.headers.values().iterator(); it.hasNext();)
+        for (Iterator<String> it = this.customHeaders.values().iterator(); it.hasNext();)
         {
             String key = it.next();
             out.append(key);
             out.append(": ");
-            out.append(this.headers.get(key));
+            out.append(this.customHeaders.get(key));
             out.append("\r\n");
         }
         boolean binary = false;
-        if (this.data != null)
+        if (this.bytes() != null)
         {
-            for (int i = 0; i < this.data.length; i++)
+            for (int i = 0; i < this.bytes().length; i++)
             {
-                if ((this.data[i] < 32) && (this.data[i] != 9) && (this.data[i] != 10) && (this.data[i] != 13))
+                if ((this.bytes()[i] < 32) && (this.bytes()[i] != 9) && (this.bytes()[i] != 10) && (this.bytes()[i] != 13))
                 {
                     binary = true;
                     break;
@@ -235,7 +247,7 @@ public class RMBMessage<T> implements Message, JSONSerializable
                 // out.append(new String(data, Charset.forName("UTF-8")));
                 try
                 {
-                    out.append(new String(this.data, "UTF-8"));
+                    out.append(string());
                 }
                 catch (Exception e)
                 {
@@ -246,9 +258,9 @@ public class RMBMessage<T> implements Message, JSONSerializable
         out.append("\n]  ");
         out.append(Integer.toString(out.length() - 21));
         out.append(" bytes with ");
-        if (this.data != null)
+        if (this.bytes() != null)
         {
-            out.append(this.data.length);
+            out.append(this.bytes().length);
             if (binary)
                 out.append(" bytes of binary data in the body");
             else
@@ -258,10 +270,10 @@ public class RMBMessage<T> implements Message, JSONSerializable
             out.append("no data");
         return out.toString();
     }
-
+    
     @Override
     public Map<String, String> headers()
     {
-        return headers;
+        return customHeaders;
     }
 }

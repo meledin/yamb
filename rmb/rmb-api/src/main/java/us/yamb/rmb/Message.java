@@ -8,6 +8,9 @@ import java.util.Map;
 public interface Message
 {
     
+    public static final int OK        = 200;
+    public static final int CONFIRMED = 100;
+    
     /**
      * The <i>from</i> parameter contains the sender of this message. Any replies should be directed to this {@link Location}.
      * 

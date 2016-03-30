@@ -13,6 +13,9 @@
 		<module>rmb-common</module>
 		<module>rmb-amb</module>
 		<module>rmb-tmb-trap</module>
+		
+		
+		<module>rmb-trap</module>
 	</modules> 
 
 	<repositories>
